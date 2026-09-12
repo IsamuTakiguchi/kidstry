@@ -84,16 +84,16 @@ npm start          # http://localhost:4173/ が開けます
 
 #### A. インターネット経由で配信する（おすすめ・iPadもフル対応）
 
-このリポジトリには GitHub Pages への公開ワークフローが入っています。**設定を1か所変えるだけ**で自動公開されます。
+**公開URL: https://isamutakiguchi.github.io/kidstry/**
 
-1. GitHub の **Settings → Pages → Source** を「**GitHub Actions**」に変更
-2. 以後、既定ブランチに push すると自動でビルド・公開されます
-   （すぐ公開したいときは Actions タブ → "Deploy to GitHub Pages" → Run workflow）
-3. 公開されたHTTPSのURLをタブレットで開き、「ホーム画面に追加」
+既定ブランチに push すると、GitHub Actions がテスト → ビルド → 公開まで自動で行います
+（`.github/workflows/deploy.yml`。初回は Pages の有効化もワークフローが自動で行います）。
 
-Pages が未設定のうちは、このワークフローは**失敗せずにスキップ**して案内だけ残します。
+タブレットで上のURLを開き、ブラウザのメニューから「**ホーム画面に追加**」してください。
+アプリのように全画面で起動し、オフラインでも遊べます。
 
 > HTTPS で配信されるため、iOS/iPadOS でも Service Worker と「ホーム画面に追加」がそのまま使えます。
+> ホーム画面に追加して使えば、記録が7日で消える Safari の制限も回避できます。
 
 #### B. 家庭内LANで配信する（公開したくない場合）
 
