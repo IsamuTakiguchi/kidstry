@@ -60,3 +60,21 @@ test('Service Worker が すべての ファイルを キャッシュに いれ�
   const missing = needed.filter((p) => !listed.has(p));
   assert.deepEqual(missing, [], `sw.js に かかれて いない ファイル: ${missing.join(', ')}`);
 });
+
+test('こうかい用ビルドに アプリの ファイルが すべて ふくまれる', async () => {
+  const { INCLUDE } = await import('../tools/build-site.mjs');
+  const sw = readFileSync(join(ROOT, 'sw.js'), 'utf8');
+  const block = sw.slice(sw.indexOf('const ASSETS = ['), sw.indexOf('];', sw.indexOf('const ASSETS = [')));
+  const assets = [...block.matchAll(/'([^']+)'/g)].map((m) => m[1]).filter((p) => p !== './');
+  assert.ok(assets.length > 30, `ASSETS を よみとれない（${assets.length}こ）`);
+  const included = new Set(INCLUDE);
+  for (const asset of assets) {
+    const top = asset.split('/')[0];
+    assert.ok(included.has(top), `ビルドに ${top} が はいって いない（${asset}）`);
+  }
+  const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
+  for (const m of html.matchAll(/(?:href|src)="((?!https?:)[^"#]+)"/g)) {
+    const top = m[1].split('/')[0];
+    assert.ok(included.has(top), `ビルドに ${top} が はいって いない（index.html: ${m[1]}）`);
+  }
+});

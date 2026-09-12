@@ -6,7 +6,8 @@ import { stat } from 'node:fs/promises';
 import { extname, join, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const BASE = join(dirname(fileURLToPath(import.meta.url)), '..');
+const ROOT = process.env.SERVE_DIR ? join(BASE, process.env.SERVE_DIR) : BASE;
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || '0.0.0.0';
 
@@ -50,5 +51,6 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`きっずトライ:  http://localhost:${PORT}/`);
+  if (process.env.SERVE_DIR) console.log(`はいしん もと: ${ROOT}`);
   console.log('タブレットからは おなじ Wi-Fi で  http://<PCの IP アドレス>:' + PORT + '/');
 });

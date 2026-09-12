@@ -166,6 +166,42 @@ async function playThrough(cdp, maxClicks = 120) {
   return cdp.eval("!!document.querySelector('.screen-result')");
 }
 
+/** Service Worker が とうろく され、つうしん なしでも ひらくか たしかめる */
+async function checkOffline(cdp) {
+  const controlled = await waitFor(
+    () => cdp.eval('!!navigator.serviceWorker && !!navigator.serviceWorker.controller'),
+    { label: 'Service Worker が ページを うけもつ', timeout: 15000 },
+  ).catch(() => false);
+  if (!controlled) return ['Service Worker が とうろく されない'];
+
+  const cached = await cdp.eval(`(async () => {
+    const keys = await caches.keys();
+    const name = keys.find((k) => k.startsWith('kidstry'));
+    if (!name) return 0;
+    return (await (await caches.open(name)).keys()).length;
+  })()`);
+  if (!cached || cached < 30) return [`キャッシュが たりない（${cached}こ）`];
+  console.log(`  ✓ キャッシュ ${cached}こ`);
+
+  await cdp.send('Network.enable');
+  await cdp.send('Network.emulateNetworkConditions', {
+    offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1,
+  });
+  await cdp.send('Page.reload', { ignoreCache: false });
+  const opened = await waitFor(() => cdp.eval("!!document.querySelector('.start-btn')"), {
+    label: 'オフラインでの さいよみこみ', timeout: 15000,
+  }).catch(() => false);
+  await cdp.send('Network.emulateNetworkConditions', {
+    offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1,
+  });
+  if (!opened) return ['オフラインで アプリが ひらかない'];
+  console.log('  ✓ オフラインでも きどう する');
+
+  await cdp.send('Page.reload');
+  await waitFor(() => cdp.eval("!!document.querySelector('.start-btn')"), { label: 'オンライン ふっき' });
+  return [];
+}
+
 async function run() {
   if (!findChromium()) {
     console.warn('⚠ Chromium が みつからないので スモークテストは スキップします。');
@@ -241,6 +277,9 @@ async function run() {
 
     const saved = await cdp.eval("JSON.parse(localStorage.getItem('kidstry:v1')).games['hiragana-find'].plays");
     if (!saved) failures.push('きろくが ほぞん されて いない');
+
+    console.log('▶ PWA（オフライン）の かくにん');
+    failures.push(...await checkOffline(cdp));
 
     if (cdp.errors.length) failures.push(...cdp.errors.map((e) => `コンソール エラー: ${e}`));
     await session.close();

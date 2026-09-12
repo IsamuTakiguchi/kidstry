@@ -58,30 +58,59 @@ npm start          # http://localhost:4173/ が開けます
 
 ### タブレットで遊ぶ
 
+#### A. インターネット経由で配信する（おすすめ・iPadもフル対応）
+
+このリポジトリには GitHub Pages への公開ワークフローが入っています。**設定を1か所変えるだけ**で自動公開されます。
+
+1. GitHub の **Settings → Pages → Source** を「**GitHub Actions**」に変更
+2. 以後、既定ブランチに push すると自動でビルド・公開されます
+   （すぐ公開したいときは Actions タブ → "Deploy to GitHub Pages" → Run workflow）
+3. 公開されたHTTPSのURLをタブレットで開き、「ホーム画面に追加」
+
+Pages が未設定のうちは、このワークフローは**失敗せずにスキップ**して案内だけ残します。
+
+> HTTPS で配信されるため、iOS/iPadOS でも Service Worker と「ホーム画面に追加」がそのまま使えます。
+
+#### B. 家庭内LANで配信する（公開したくない場合）
+
 1. PCと タブレットを 同じ Wi-Fi につなぐ
 2. PCで `npm start` を実行
 3. タブレットのブラウザで `http://<PCのIPアドレス>:4173/` を開く
-4. ブラウザのメニューから「ホーム画面に追加」すると、アプリのように全画面で起動し、オフラインでも遊べます
 
-> ⚠️ iOS/iPadOS の Safari では、Service Worker と「ホーム画面に追加」を使うために **HTTPS もしくは localhost** が必要です。
-> `http://192.168.x.x` で開いた場合もアプリ自体は動作しますが、オフライン機能は無効になります。
+> ⚠️ この方法は `http://` のため、iOS/iPadOS の Safari では Service Worker と「ホーム画面に追加」が使えません。
+> アプリ自体は動作しますが、オフライン機能は無効になります。Android Chrome では動作します。
 
 ## 開発
 
 ```bash
 npm test           # ユニットテスト（node:test / 依存ゼロ）
+npm run build      # 公開用ファイルだけを _site/ に集める
 npm run icons      # SVGアセット生成 → PNGアイコン書き出し
 npm run smoke      # ブラウザ自動操作テスト＋スクリーンショット撮影
 ```
+
+ビルド結果をそのまま確認するには `SERVE_DIR=_site npm start`。
+どんな静的ホスティング（Netlify / Cloudflare Pages / S3 など）でも、`_site/` をそのまま置くだけで動きます。
 
 ### スクリプトについて
 
 | コマンド | 中身 |
 |---|---|
-| `npm start` | `tools/serve.mjs`。Node標準モジュールだけの静的サーバー（ESモジュール配信に必要） |
+| `npm start` | `tools/serve.mjs`。Node標準モジュールだけの静的サーバー（ESモジュール配信に必要）。`SERVE_DIR` で配信元を変更可 |
+| `npm run build` | `tools/build-site.mjs`。アプリの動作に必要なファイルだけを `_site/` に集める（約400KB） |
 | `npm test` | `tests/*.test.mjs` を実行。問題生成ロジック・記録・描画・アセット整合性を検証 |
 | `npm run icons` | `tools/make-assets.mjs` でマスコット・アイコンのSVGを生成し、Chromiumで各サイズのPNGに書き出し |
-| `npm run smoke` | Chromiumを **CDP（DevTools Protocol）** で直接操作。9つのあそびが開けるか、1ゲーム最後まで進めるか、コンソールエラーが出ないかを確認し、`docs/screenshots/` に画像を保存 |
+| `npm run smoke` | Chromiumを **CDP（DevTools Protocol）** で直接操作して総合確認（下記）し、`docs/screenshots/` に画像を保存 |
+
+`npm run smoke` が確認すること:
+
+- 9つのあそびがすべて開き、問題が表示される
+- 1ゲームを最後まで完走でき、結果画面に進む
+- 記録が localStorage に保存される
+- 「おうちのかた」が **3秒長押しでのみ** 開く（短い操作では開かない）
+- Service Worker が登録され、**通信を遮断しても**アプリが起動する
+- コンソールエラーが0件
+- タブレット横（1024×768）とスマホ縦（390×844）の両方で表示を撮影
 
 `icons` と `smoke` は Chromium/Chrome を使います。見つからない場合は警告を出してスキップするので、ブラウザのない環境でも `npm test` は通ります。
 `CHROMIUM_PATH=/path/to/chrome` で明示指定もできます。
@@ -108,7 +137,7 @@ assets/
   characters/           マスコット「トリィ」4ポーズ（SVG）
   icons/                アプリ・あそびアイコン（SVG）
   generated/            書き出したPNGアイコン
-tools/                  serve / make-assets / make-icons / smoke
+tools/                  serve / build-site / make-assets / make-icons / smoke
 tests/                  ユニットテスト
 ```
 
