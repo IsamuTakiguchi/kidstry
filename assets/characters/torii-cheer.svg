@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="トリィ">
+  <g transform="">
+    <ellipse cx="100" cy="186" rx="46" ry="8" fill="#000" opacity=".08"/>
+    <path d="M78 176l-8 12h22z" fill="#f59516"/>
+    <path d="M122 176l8 12h-22z" fill="#f59516"/>
+    <ellipse cx="34" cy="92" rx="17" ry="26" fill="#5cc2ec" transform="rotate(-32 34 92)"/>
+            <ellipse cx="166" cy="92" rx="17" ry="26" fill="#5cc2ec" transform="rotate(32 166 92)"/>
+    <ellipse cx="100" cy="112" rx="66" ry="64" fill="#8ed7f7"/>
+    <ellipse cx="100" cy="128" rx="44" ry="42" fill="#f2fbff"/>
+    <path d="M100 30c-4 10-12 14-12 14s10 6 12 14c2-8 12-14 12-14s-8-4-12-14z" fill="#ffd166"/>
+    <circle cx="62" cy="118" r="11" fill="#ffa5be" opacity=".75"/>
+    <circle cx="138" cy="118" r="11" fill="#ffa5be" opacity=".75"/>
+    
+    <circle cx="80" cy="95" r="8.5" fill="#2b3a4a"/>
+    <circle cx="83" cy="91.5" r="3" fill="#fff"/>
+    <circle cx="120" cy="95" r="8.5" fill="#2b3a4a"/>
+    <circle cx="123" cy="91.5" r="3" fill="#fff"/>
+    <path d="M100 104c11 0 18 6 18 12s-8 12-18 12-18-6-18-12 7-12 18-12z" fill="#f59516"/>
+            <path d="M84 112h32c-1-5-7-8-16-8s-15 3-16 8z" fill="#ffb23f"/>
+  </g>
+  <g fill="#ffd166">
+        <path d="M22 40l4 10 10 4-10 4-4 10-4-10-10-4 10-4z"/>
+        <path d="M178 52l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"/>
+      </g>
+</svg>

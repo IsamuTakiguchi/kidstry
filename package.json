@@ -1,0 +1,16 @@
+{
+  "name": "kidstry",
+  "version": "1.0.0",
+  "description": "きっずトライ — 5さいじ むけ ちいく タブレット アプリ (依存ゼロ / オフライン対応 PWA)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "test": "node --test \"tests/*.test.mjs\"",
+    "icons": "node tools/make-icons.mjs",
+    "smoke": "node tools/smoke.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

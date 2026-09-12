@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img">
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="#ff8fa3"/>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="#fff" opacity=".18"/>
+  
+    <rect x="26" y="22" width="76" height="84" rx="16" fill="#fff"/>
+    <text x="64" y="88" font-family="'Hiragino Maru Gothic ProN','Hiragino Sans','Noto Sans JP',system-ui,sans-serif" font-size="58" font-weight="800" fill="#ff5c7a" text-anchor="middle">あ</text>
+</svg>

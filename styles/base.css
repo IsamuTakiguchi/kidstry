@@ -1,0 +1,148 @@
+/* きほんの スタイル（いろ・もじ・がめん） */
+:root {
+  --ink: #33475b;
+  --ink-soft: #6b7f96;
+  --paper: #ffffff;
+  --sky: #eaf6ff;
+  --cream: #fff8e7;
+  --line: #e4edf6;
+  --accent: #ff9f1c;
+  --good: #35c46b;
+  --bad: #ff6b6b;
+  --radius-lg: 30px;
+  --radius: 22px;
+  --shadow: 0 10px 24px rgba(45, 90, 130, .12);
+  --shadow-press: 0 6px 0 rgba(45, 90, 130, .16);
+  --tap: 96px;
+  --game-color: #8ed7f7;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', 'BIZ UDPGothic', system-ui, sans-serif;
+  color: var(--ink);
+  background: linear-gradient(160deg, var(--sky) 0%, #f3fbff 45%, var(--cream) 100%);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+img { max-width: 100%; -webkit-user-drag: none; }
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  touch-action: manipulation;
+}
+
+.app { height: 100dvh; }
+
+.screen {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: calc(12px + var(--safe-t)) calc(16px + var(--safe-r)) calc(12px + var(--safe-b)) calc(16px + var(--safe-l));
+  gap: 12px;
+  animation: fade-in .28s ease both;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+h1, h2, p { margin: 0; }
+
+/* ---- スタート がめん ---- */
+.screen-start { align-items: center; justify-content: center; }
+
+.start-card {
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: clamp(20px, 4vh, 40px) clamp(28px, 6vw, 64px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: min(92vw, 560px);
+}
+
+.start-logo { width: clamp(104px, 24vh, 190px); height: auto; border-radius: 34px; box-shadow: 0 10px 26px rgba(45, 90, 130, .18); }
+.start-title { font-size: clamp(30px, 6vh, 46px); letter-spacing: .04em; }
+.start-sub { color: var(--ink-soft); font-size: clamp(15px, 2.4vh, 20px); }
+
+.start-btn {
+  margin-top: 6px;
+  min-height: var(--tap);
+  min-width: min(78vw, 300px);
+  border-radius: 999px;
+  font-size: clamp(22px, 3.4vh, 30px);
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(180deg, #ffc046, var(--accent));
+  box-shadow: 0 8px 0 #e2860d;
+  transition: transform .08s ease, box-shadow .08s ease;
+}
+.start-btn:active { transform: translateY(5px); box-shadow: 0 3px 0 #e2860d; }
+
+/* ---- ヘッダー ---- */
+.home-header, .sub-header, .quiz-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.app-title { font-size: clamp(24px, 3.6vh, 34px); letter-spacing: .04em; }
+.home-sub { color: var(--ink-soft); font-size: clamp(14px, 2.2vh, 19px); }
+.home-greeting { min-width: 0; }
+.home-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.sub-title { font-size: clamp(20px, 3.2vh, 30px); }
+.sub-header { padding-bottom: 4px; border-bottom: 3px dashed var(--line); }
+
+.mascot { display: block; }
+.mascot-home { width: clamp(56px, 10vh, 92px); }
+
+/* ---- トースト ---- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + var(--safe-b));
+  transform: translate(-50%, 24px);
+  padding: 12px 30px;
+  border-radius: 999px;
+  font-size: clamp(20px, 3vh, 28px);
+  font-weight: 800;
+  color: #fff;
+  background: var(--good);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+  z-index: 20;
+}
+.toast.is-show { opacity: 1; transform: translate(-50%, 0); }
+.toast-retry { background: #ffa94d; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

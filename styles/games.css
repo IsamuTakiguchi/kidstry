@@ -1,0 +1,188 @@
+/* クイズ がめん */
+.screen-quiz { gap: clamp(4px, 1.2vh, 12px); }
+
+.quiz-header { flex-wrap: nowrap; }
+.quiz-title { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.quiz-title-text { font-size: clamp(16px, 2.6vh, 24px); font-weight: 800; color: var(--game-color); }
+
+.progress { display: flex; gap: 5px; }
+.dot {
+  width: clamp(9px, 1.4vh, 13px);
+  height: clamp(9px, 1.4vh, 13px);
+  border-radius: 50%;
+  background: #dfe8f0;
+}
+.dot.is-done { background: var(--game-color); }
+.dot.is-now { background: var(--accent); transform: scale(1.25); }
+
+.speaker { background: color-mix(in srgb, var(--game-color) 22%, #fff); }
+
+.quiz-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 1.4vh, 14px);
+}
+.quiz-main.no-stage { justify-content: center; gap: clamp(12px, 3vh, 30px); }
+.quiz-main.no-stage .ask-text { font-size: clamp(26px, 7vh, 56px); }
+.quiz-main.no-stage .choices { flex: 1; min-height: 0; max-height: 48vh; }
+
+.ask-text {
+  font-size: clamp(20px, 3.6vh, 34px);
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.25;
+}
+.ask-sub { font-size: clamp(14px, 2.2vh, 20px); color: var(--ink-soft); }
+
+.stage {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: clamp(4px, 1.6vw, 18px);
+  padding: clamp(6px, 1.6vh, 18px);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, .66);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .9), 0 6px 18px rgba(45, 90, 130, .07);
+  overflow: hidden;
+}
+.stage[hidden] { display: none; }
+
+/* ---- もんだいの え ---- */
+.stage-emoji { font-size: clamp(56px, 18vh, 150px); line-height: 1; text-align: center; }
+.stage-word {
+  margin-top: 6px;
+  text-align: center;
+  font-size: clamp(26px, 5vh, 48px);
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.stage-word .blank { color: var(--accent); }
+
+.count-grid {
+  display: grid;
+  gap: clamp(2px, .8vh, 8px);
+  justify-items: center;
+  align-items: center;
+}
+.count-item { font-size: clamp(26px, 10vh, 84px); line-height: 1.02; }
+
+.stage-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, 1.6vw, 18px);
+  flex-wrap: wrap;
+}
+.stage-add .count-item { font-size: clamp(20px, 6.5vh, 56px); }
+.stage-op { font-size: clamp(24px, 5vh, 44px); font-weight: 800; color: var(--ink-soft); }
+.stage-q { color: var(--accent); }
+
+.stage-clock { display: flex; align-items: center; justify-content: center; height: 100%; }
+.clock-svg { width: auto; height: min(44vh, 300px); max-width: 88vw; }
+
+.stage-seq {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 1.2vw, 14px);
+  flex-wrap: wrap;
+}
+.seq-item {
+  font-size: clamp(26px, 8vh, 66px);
+  line-height: 1;
+  background: var(--paper);
+  border-radius: 18px;
+  padding: clamp(4px, 1vh, 10px) clamp(6px, 1vw, 12px);
+  box-shadow: 0 4px 0 rgba(45, 90, 130, .12);
+}
+.seq-q { color: var(--accent); font-weight: 800; border: 3px dashed var(--accent); }
+
+/* ---- せんたくし ---- */
+.choices {
+  width: 100%;
+  display: grid;
+  gap: clamp(6px, 1.4vh, 14px);
+}
+.choices.grid4 { grid-template-columns: repeat(4, 1fr); }
+.choices.grid3 { grid-template-columns: repeat(3, 1fr); }
+.choices.grid2 { grid-template-columns: repeat(2, 1fr); }
+
+.choice {
+  min-height: max(var(--tap), 16vh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: var(--radius);
+  background: var(--paper);
+  border: 4px solid color-mix(in srgb, var(--game-color) 40%, #fff);
+  box-shadow: 0 7px 0 color-mix(in srgb, var(--game-color) 50%, #b9cbd9);
+  transition: transform .08s ease, box-shadow .08s ease, background .16s ease;
+}
+.choice:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 3px 0 color-mix(in srgb, var(--game-color) 50%, #b9cbd9); }
+
+.choice-text .choice-text,
+.choice-text span { font-size: clamp(38px, 10vh, 88px); font-weight: 800; }
+.choice-number .choice-number { font-size: clamp(38px, 10vh, 88px); font-weight: 800; }
+.choice-emoji .choice-emoji { font-size: clamp(32px, 8vh, 72px); line-height: 1.05; }
+.choice-label { font-size: clamp(11px, 1.8vh, 16px); font-weight: 700; color: var(--ink-soft); text-align: center; line-height: 1.2; }
+.choice-shape .shape-svg { width: auto; height: min(14vh, 116px); }
+
+.choice.is-correct {
+  background: #e8fbef;
+  border-color: var(--good);
+  box-shadow: 0 7px 0 #2aa85a;
+  animation: pop .3s ease;
+}
+.choice.is-wrong {
+  opacity: .55;
+  border-color: #f3c7c7;
+  box-shadow: 0 4px 0 #e2b6b6;
+  animation: shake .34s ease;
+}
+.choice:disabled { cursor: default; }
+
+@keyframes shake {
+  0%, 100% { transform: none; }
+  20% { transform: translateX(-8px); }
+  45% { transform: translateX(7px); }
+  70% { transform: translateX(-4px); }
+}
+
+.mascot-quiz {
+  width: clamp(44px, 8vh, 68px);
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+/* ---- ちいさな がめん／たてむき ---- */
+@media (max-width: 760px), (orientation: portrait) {
+  .tile-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: none;
+    grid-auto-rows: minmax(clamp(110px, 17vh, 150px), auto);
+    overflow: auto;
+    flex: 1 1 auto;
+  }
+  .sticker-grid { grid-template-columns: repeat(4, 1fr); }
+  .choices.grid4 { grid-template-columns: repeat(2, 1fr); }
+  .mascot-quiz { width: 42px; }
+  .screen { height: auto; min-height: 100dvh; }
+  .screen-quiz, .screen-home { height: 100dvh; }
+}
+
+@media (max-width: 430px) {
+  .home-actions { width: 100%; margin-left: 0; }
+  .sticker-grid { grid-template-columns: repeat(3, 1fr); }
+  .bar-row { grid-template-columns: 72px 1fr 42px; }
+}

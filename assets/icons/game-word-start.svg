@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img">
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="#ffb703"/>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="#fff" opacity=".18"/>
+  
+    <path d="M22 30h84a10 10 0 0 1 10 10v42a10 10 0 0 1-10 10H62l-20 18v-18H22a10 10 0 0 1-10-10V40a10 10 0 0 1 10-10z" fill="#fff"/>
+    <text x="64" y="78" font-family="'Hiragino Maru Gothic ProN','Hiragino Sans','Noto Sans JP',system-ui,sans-serif" font-size="40" font-weight="800" fill="#e08700" text-anchor="middle">◯ん</text>
+</svg>

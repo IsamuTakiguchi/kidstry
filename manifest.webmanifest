@@ -1,0 +1,20 @@
+{
+  "name": "きっずトライ｜5さいの まなび あそび",
+  "short_name": "きっずトライ",
+  "description": "5さいじ むけの ちいく タブレット アプリ。ひらがな・かず・とけい・えいご・かたち・ちえ・せいかつしゅうかん。",
+  "lang": "ja",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#f6fbff",
+  "theme_color": "#8ed7f7",
+  "categories": ["education", "kids"],
+  "icons": [
+    { "src": "assets/icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/generated/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/generated/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/generated/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
