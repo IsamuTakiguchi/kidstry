@@ -84,12 +84,18 @@ npm start          # http://localhost:4173/ が開けます
 
 #### A. インターネット経由で配信する（おすすめ・iPadもフル対応）
 
-**公開URL: https://isamutakiguchi.github.io/kidstry/**
+**公開URL（Pages有効化後）: https://isamutakiguchi.github.io/kidstry/**
 
-既定ブランチに push すると、GitHub Actions がテスト → ビルド → 公開まで自動で行います
-（`.github/workflows/deploy.yml`。初回は Pages の有効化もワークフローが自動で行います）。
+初回だけ、GitHubの **Settings → Pages → Source** を「**GitHub Actions**」に変更してください（1回だけの操作です）。
+以後は既定ブランチに push するたび、テスト → ビルド → 公開まで自動で行われます（`.github/workflows/deploy.yml`）。
 
-タブレットで上のURLを開き、ブラウザのメニューから「**ホーム画面に追加**」してください。
+> ℹ️ この有効化をワークフロー側で自動化することはできません。
+> `actions/configure-pages` の `enablement: true` を試しましたが、
+> Pagesサイトの作成には admin 権限が必要で、`GITHUB_TOKEN` では
+> `Resource not accessible by integration` になります。
+> Pages が未設定のうちは、このワークフローは**失敗させずにスキップ**して案内だけ残します。
+
+公開後はタブレットでURLを開き、ブラウザのメニューから「**ホーム画面に追加**」してください。
 アプリのように全画面で起動し、オフラインでも遊べます。
 
 > HTTPS で配信されるため、iOS/iPadOS でも Service Worker と「ホーム画面に追加」がそのまま使えます。
