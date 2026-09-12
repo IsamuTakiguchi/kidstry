@@ -1,7 +1,10 @@
-import { h, clear, starsHtml, formatDuration } from '../core/ui.js';
+import { h, clear, starsHtml, formatDuration, showModal } from '../core/ui.js';
 import { sfx, configureAudio } from '../core/audio.js';
 import { GAMES } from '../games/index.js';
-import { accuracy, domainStats, totalPlays } from '../core/state.js';
+import {
+  accuracy, domainStats, totalPlays,
+  exportPayload, backupFileName, parseBackup,
+} from '../core/state.js';
 import { STICKERS } from '../data/stickers.js';
 
 const LEVELS = [
@@ -144,21 +147,27 @@ export function renderParent({ root, store, onHome, onReset }) {
           }),
         ),
       ),
+      backupCard({ store, onReloaded: () => renderParent({ root, store, onHome, onReset }) }),
       h(
         'section',
         { class: 'card card-danger' },
-        h('h2', {}, 'データ'),
-        h('p', { class: 'note' }, 'きろく・シール・せっていをすべて消して最初からやり直します。元に戻せません。'),
+        h('h2', {}, 'データを けす'),
+        h('p', { class: 'note' }, 'きろく・シール・せっていをすべて消して最初からやり直します。元に戻せません。先に「きろくを ほぞん」しておくと、あとから戻せます。'),
         h(
           'button',
           {
             class: 'danger-btn',
             type: 'button',
-            onclick: () => {
-              if (confirm('すべての記録とシールを消します。よろしいですか？')) {
-                onReset();
-              }
-            },
+            onclick: () => showModal({
+              title: 'きろくを ぜんぶ けしますか？',
+              lines: [
+                'あそんだ きろく・あつめた シール・せってい が すべて 消えます。',
+                'もとに もどす ことは できません。',
+              ],
+              okLabel: 'けす',
+              danger: true,
+              onOk: onReset,
+            }),
           },
           'きろくを ぜんぶ けす',
         ),
@@ -172,4 +181,110 @@ export function renderParent({ root, store, onHome, onReset }) {
 
 function kpi(label, value) {
   return h('div', { class: 'kpi' }, h('span', { class: 'kpi-value' }, value), h('span', { class: 'kpi-label' }, label));
+}
+
+/** きろくの かきだし・よみこみ */
+function backupCard({ store, onReloaded }) {
+  const fileInput = h('input', {
+    type: 'file',
+    accept: 'application/json,.json',
+    class: 'visually-hidden',
+    onchange: (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = '';
+      if (file) readBackup(file, store, onReloaded);
+    },
+  });
+
+  return h(
+    'section',
+    { class: 'card' },
+    h('h2', {}, 'きろくの ほぞん'),
+    h('p', { class: 'note' },
+      'きろくはこの端末のブラウザだけに保存されています。機種変更・ブラウザのデータ消去・別の端末で使いたいときは、'
+      + 'ファイルに書き出して持ち運べます。通信は行いません。'),
+    h(
+      'div',
+      { class: 'backup-actions' },
+      h('button', {
+        class: 'pill-btn pill-action',
+        type: 'button',
+        onclick: () => saveBackup(store.get()),
+      }, '💾 きろくを ほぞん'),
+      h('button', {
+        class: 'pill-btn pill-action',
+        type: 'button',
+        onclick: () => fileInput.click(),
+      }, '📂 きろくを よみこむ'),
+      fileInput,
+    ),
+  );
+}
+
+function saveBackup(state) {
+  const json = JSON.stringify(exportPayload(state), null, 2);
+  const name = backupFileName();
+  try {
+    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    const a = h('a', { href: url, download: name, class: 'visually-hidden' });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } catch {
+    // ダウンロードが つかえない かんきょう では もじを みせて コピー して もらう
+    showModal({
+      title: 'きろくの なかみ',
+      lines: [`このテキストをコピーして、${name} という名前で保存してください。`],
+      content: h('textarea', { class: 'backup-text', readonly: true, rows: '8', text: json }),
+      okLabel: 'とじる',
+      cancelLabel: null,
+    });
+  }
+}
+
+function readBackup(file, store, onReloaded) {
+  const reader = new FileReader();
+  reader.onerror = () => showModal({
+    title: 'よみこめませんでした',
+    lines: ['ファイルを ひらけませんでした。'],
+    okLabel: 'とじる',
+    cancelLabel: null,
+  });
+  reader.onload = () => {
+    const result = parseBackup(String(reader.result));
+    if (!result.ok) {
+      showModal({
+        title: 'よみこめませんでした',
+        lines: [result.error],
+        okLabel: 'とじる',
+        cancelLabel: null,
+      });
+      return;
+    }
+    const { summary, exportedAt } = result;
+    const saved = exportedAt ? new Date(exportedAt) : null;
+    showModal({
+      title: 'この きろくを よみこみますか？',
+      lines: [
+        saved && !Number.isNaN(saved.getTime())
+          ? `ほぞんした日：${saved.getFullYear()}年${saved.getMonth() + 1}月${saved.getDate()}日`
+          : null,
+        `あそんだ回数：${summary.plays}回 ／ シール：${summary.stickers}まい`,
+        'いまの端末の きろくは、この内容に おきかわります。',
+      ],
+      okLabel: 'よみこむ',
+      onOk: () => {
+        store.set(result.state);
+        onReloaded();
+        showModal({
+          title: 'よみこみました',
+          lines: [`あそんだ回数 ${summary.plays}回 ／ シール ${summary.stickers}まい を ふくむ きろくに なりました。`],
+          okLabel: 'とじる',
+          cancelLabel: null,
+        });
+      },
+    });
+  };
+  reader.readAsText(file);
 }

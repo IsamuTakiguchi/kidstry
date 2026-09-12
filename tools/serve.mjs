@@ -3,11 +3,11 @@
 import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { extname, join, normalize, dirname } from 'node:path';
+import { extname, join, normalize, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const BASE = join(dirname(fileURLToPath(import.meta.url)), '..');
-const ROOT = process.env.SERVE_DIR ? join(BASE, process.env.SERVE_DIR) : BASE;
+const ROOT = process.env.SERVE_DIR ? resolve(BASE, process.env.SERVE_DIR) : BASE;
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || '0.0.0.0';
 

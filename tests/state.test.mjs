@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   defaultState, starsFor, nextStreak, recordSession, awardSticker,
   accuracy, domainStats, totalPlays, migrate, createStore, todayKey, STORAGE_KEY,
+  exportPayload, parseBackup, backupFileName,
 } from '../src/core/state.js';
 import { STICKERS } from '../src/data/stickers.js';
 import { GAMES } from '../src/games/index.js';
@@ -121,4 +122,76 @@ test('ストア：ほぞん できなくても おちない', () => {
 test('きょうの ひづけ', () => {
   assert.equal(todayKey(new Date(2026, 0, 5)), '2026-01-05');
   assert.match(todayKey(), /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test('バックアップ：かきだして よみこむと もとに もどる', () => {
+  let s = defaultState();
+  s = recordSession(s, { gameId: 'clock', firstTryCorrect: 8, questions: 10, durationMs: 120000, today: '2026-09-12' });
+  s = recordSession(s, { gameId: 'english', firstTryCorrect: 6, questions: 10, durationMs: 90000, today: '2026-09-13' });
+  s = awardSticker(s, () => 0).state;
+  s = { ...s, profile: { name: 'たろう', level: 3 }, settings: { sound: false, speech: true } };
+
+  const json = JSON.stringify(exportPayload(s, new Date('2026-09-13T09:00:00Z')));
+  const result = parseBackup(json);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.state, s, 'よみこんだ きろくが もとと ちがう');
+  assert.equal(result.exportedAt, '2026-09-13T09:00:00.000Z');
+  assert.deepEqual(result.summary, {
+    plays: 2, stickers: 1, totalPlayMs: 210000, lastPlayDate: '2026-09-13', games: 2,
+  });
+});
+
+test('バックアップ：ファイル名', () => {
+  assert.equal(backupFileName(new Date(2026, 8, 12)), 'kidstry-kiroku-2026-09-12.json');
+  assert.match(backupFileName(), /^kidstry-kiroku-\d{4}-\d{2}-\d{2}\.json$/);
+});
+
+test('バックアップ：かきだす なかみに めじるしが つく', () => {
+  const payload = exportPayload(defaultState());
+  assert.equal(payload.app, 'kidstry');
+  assert.equal(payload.version, 1);
+  assert.match(payload.exportedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert.ok(payload.state);
+});
+
+test('バックアップ：おかしな ファイルは れいがいを なげずに ことわる', () => {
+  const bad = [
+    ['{{こわれたJSON', 'JSON では ありません'],
+    ['null', 'ファイルでは ないようです'],
+    ['[1,2,3]', 'ファイルでは ないようです'],
+    ['"ただのもじれつ"', 'ファイルでは ないようです'],
+    ['{"app":"otherapp","state":{}}', 'ファイルでは ないようです'],
+    ['{"app":"kidstry"}', 'なかみが 入って いません'],
+    ['{"app":"kidstry","state":[]}', 'なかみが 入って いません'],
+    ['{"app":"kidstry","state":"あ"}', 'なかみが 入って いません'],
+  ];
+  for (const [text, expected] of bad) {
+    const r = parseBackup(text);
+    assert.equal(r.ok, false, `${text} を うけいれて しまった`);
+    assert.ok(r.error.includes(expected), `${text}: メッセージが ちがう（${r.error}）`);
+  }
+});
+
+test('バックアップ：こわれた なかみでも なおして よみこむ', () => {
+  const r = parseBackup(JSON.stringify({
+    app: 'kidstry',
+    state: { stickers: ['st01', 99, null], totalPlayMs: 'あ', games: null, profile: { level: 2 } },
+  }));
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.state.stickers, ['st01']);
+  assert.equal(r.state.totalPlayMs, 0);
+  assert.deepEqual(r.state.games, {});
+  assert.equal(r.state.profile.level, 2);
+  assert.equal(r.state.settings.sound, true);
+  assert.equal(r.exportedAt, null);
+});
+
+test('バックアップ：あたらしい きろくを よみこんでも 2どめで ふえない', () => {
+  let s = defaultState();
+  s = recordSession(s, { gameId: 'clock', firstTryCorrect: 9, questions: 10, today: '2026-09-12' });
+  const json = JSON.stringify(exportPayload(s));
+  const first = parseBackup(json).state;
+  const second = parseBackup(JSON.stringify(exportPayload(first))).state;
+  assert.deepEqual(second, first, 'よみこむ たびに きろくが かわる');
+  assert.equal(second.games.clock.plays, 1);
 });

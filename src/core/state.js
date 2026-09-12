@@ -169,3 +169,60 @@ export function createStore(storage) {
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
   };
 }
+
+// ---- きろくの ほぞん／よみこみ（バックアップ） ------------------------------
+export const BACKUP_APP = 'kidstry';
+
+/** ファイルに かきだす なかみ */
+export function exportPayload(state, now = new Date()) {
+  return {
+    app: BACKUP_APP,
+    version: STATE_VERSION,
+    exportedAt: now.toISOString(),
+    state,
+  };
+}
+
+export function backupFileName(now = new Date()) {
+  return `kidstry-kiroku-${todayKey(now)}.json`;
+}
+
+/** がめんに みせる ようやく */
+export function backupSummary(state) {
+  return {
+    plays: totalPlays(state),
+    stickers: state.stickers.length,
+    totalPlayMs: state.totalPlayMs,
+    lastPlayDate: state.lastPlayDate,
+    games: Object.keys(state.games).length,
+  };
+}
+
+/**
+ * よみこんだ もじれつを たしかめて state に する。
+ * こわれて いたら { ok: false, error } を かえす（れいがいは なげない）。
+ */
+export function parseBackup(text) {
+  let raw;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return { ok: false, error: 'ファイルの なかみを よみとれませんでした（JSON では ありません）。' };
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { ok: false, error: 'きっずトライの きろく ファイルでは ないようです。' };
+  }
+  if (raw.app !== BACKUP_APP) {
+    return { ok: false, error: 'きっずトライの きろく ファイルでは ないようです。' };
+  }
+  if (!raw.state || typeof raw.state !== 'object' || Array.isArray(raw.state)) {
+    return { ok: false, error: 'きろくの なかみが 入って いません。' };
+  }
+  const state = migrate(raw.state);
+  return {
+    ok: true,
+    state,
+    exportedAt: typeof raw.exportedAt === 'string' ? raw.exportedAt : null,
+    summary: backupSummary(state),
+  };
+}

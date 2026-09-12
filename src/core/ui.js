@@ -107,3 +107,60 @@ export function formatDuration(ms) {
   const minutes = totalMinutes % 60;
   return minutes ? `${hours}じかん ${minutes}ふん` : `${hours}じかん`;
 }
+
+/**
+ * がめんの うえに だす かくにん ダイアログ。
+ * window.confirm と ちがい、もじを ひらがなに でき、テストからも あつかえる。
+ */
+export function showModal({
+  title,
+  lines = [],
+  content = null,
+  okLabel = 'OK',
+  cancelLabel = 'やめる',
+  danger = false,
+  onOk = null,
+  onCancel = null,
+}) {
+  const overlay = h('div', { class: 'modal-overlay', role: 'dialog', 'aria-modal': 'true' });
+
+  const close = (fn) => {
+    document.removeEventListener('keydown', onKey);
+    overlay.remove();
+    if (fn) fn();
+  };
+  function onKey(ev) {
+    if (ev.key === 'Escape') close(onCancel);
+  }
+
+  const okBtn = h('button', {
+    class: `modal-btn ${danger ? 'modal-btn-danger' : 'modal-btn-ok'}`,
+    type: 'button',
+    onclick: () => close(onOk),
+  }, okLabel);
+
+  const card = h(
+    'div',
+    { class: 'modal-card' },
+    h('h2', { class: 'modal-title' }, title),
+    ...lines.filter(Boolean).map((line) => h('p', { class: 'modal-line' }, line)),
+    content,
+    h(
+      'div',
+      { class: 'modal-actions' },
+      okBtn,
+      cancelLabel && h('button', {
+        class: 'modal-btn modal-btn-cancel',
+        type: 'button',
+        onclick: () => close(onCancel),
+      }, cancelLabel),
+    ),
+  );
+
+  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) close(onCancel); });
+  document.addEventListener('keydown', onKey);
+  overlay.append(card);
+  document.body.append(overlay);
+  okBtn.focus();
+  return () => close(null);
+}

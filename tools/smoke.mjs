@@ -2,7 +2,7 @@
 // じどう どうさ かくにん：Chromium を CDP で うごかして あそびを さいごまで すすめる。
 // npm install ふよう（Node ないぞうの WebSocket を つかう）。
 import { spawn } from 'node:child_process';
-import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +11,8 @@ import { findChromium } from './make-icons.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = process.env.SHOT_DIR || join(ROOT, 'docs/screenshots');
 const PORT = Number(process.env.PORT || 4173);
-const BASE = `http://127.0.0.1:${PORT}/`;
+const SITE_PATH = process.env.SITE_PATH || '/';
+const BASE = `http://127.0.0.1:${PORT}${SITE_PATH}`;
 const DEVTOOLS_PORT = Number(process.env.CDP_PORT || 9333);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -83,6 +84,14 @@ class Cdp {
     return res.result.value;
   }
 
+  /** input[type=file] に ファイルを わたす */
+  async setFileInput(selector, filePath) {
+    const { root } = await this.send('DOM.getDocument', { depth: -1 });
+    const { nodeId } = await this.send('DOM.querySelector', { nodeId: root.nodeId, selector });
+    if (!nodeId) throw new Error(`${selector} が みつからない`);
+    await this.send('DOM.setFileInputFiles', { nodeId, files: [filePath] });
+  }
+
   async shot(name) {
     const { data } = await this.send('Page.captureScreenshot', { format: 'png' });
     const path = join(OUT, `${name}.png`);
@@ -125,6 +134,7 @@ async function launch(width, height) {
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
   await cdp.send('Log.enable');
+  await cdp.send('DOM.enable');
   return {
     cdp,
     async close() {
@@ -202,6 +212,106 @@ async function checkOffline(cdp) {
   return [];
 }
 
+/** きろくの かきだし・よみこみ を たしかめる */
+async function checkBackup(cdp, workDir) {
+  const failures = [];
+  await cdp.eval('window.__kidstry.goParent()');
+  await waitFor(() => cdp.eval("!!document.querySelector('.backup-actions')"), { label: 'ほぞん ボタン' });
+
+  // かきだし：ほんものの ダウンロードが おきるか
+  const downloadDir = join(workDir, 'downloads');
+  await mkdir(downloadDir, { recursive: true });
+  let downloadReady = true;
+  try {
+    await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDir });
+  } catch {
+    try {
+      await cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDir });
+    } catch {
+      downloadReady = false;
+    }
+  }
+  if (downloadReady) {
+    await cdp.eval("[...document.querySelectorAll('.pill-action')].find((b) => b.textContent.includes('ほぞん')).click()");
+    const saved = await waitFor(async () => {
+      const files = await readdir(downloadDir).catch(() => []);
+      return files.find((f) => f.endsWith('.json'));
+    }, { label: 'きろくファイルの かきだし', timeout: 10000 }).catch(() => null);
+    if (!saved) {
+      failures.push('きろくファイルが かきだせない');
+    } else {
+      const text = await readFile(join(downloadDir, saved), 'utf8');
+      const parsed = JSON.parse(text);
+      if (parsed.app !== 'kidstry' || !parsed.state) failures.push('かきだした ファイルの なかみが おかしい');
+      else console.log(`  ✓ かきだし（${saved}）`);
+    }
+  } else {
+    console.log('  - ダウンロードの かくにんは スキップ');
+  }
+
+  // よみこみ：べつの きろくを わたして おきかわるか
+  const fixture = join(workDir, 'restore.json');
+  await writeFile(fixture, JSON.stringify({
+    app: 'kidstry',
+    version: 1,
+    exportedAt: '2026-01-15T00:00:00.000Z',
+    state: {
+      version: 1,
+      profile: { name: 'テスト', level: 2 },
+      settings: { sound: true, speech: true },
+      stickers: ['st01', 'st02', 'st03'],
+      lastPlayDate: '2026-01-15',
+      streak: 7,
+      totalPlayMs: 1234000,
+      games: { clock: { plays: 5, firstTryCorrect: 40, questions: 50, bestStars: 3, lastPlayed: '2026-01-15' } },
+    },
+  }), 'utf8');
+
+  await cdp.setFileInput('.screen-parent input[type=file]', fixture);
+  const asked = await waitFor(() => cdp.eval("!!document.querySelector('.modal-card')"), {
+    label: 'よみこみ かくにん ダイアログ', timeout: 8000,
+  }).catch(() => false);
+  if (!asked) {
+    failures.push('よみこみの かくにん ダイアログが でない');
+    return failures;
+  }
+  const shown = await cdp.eval("document.querySelector('.modal-card').textContent");
+  if (!shown.includes('5回') || !shown.includes('3まい')) {
+    failures.push(`かくにん ダイアログに なかみが でて いない: ${shown.slice(0, 80)}`);
+  }
+
+  // 「やめる」では かわらない こと
+  await cdp.eval("document.querySelector('.modal-btn-cancel').click()");
+  await sleep(200);
+  const untouched = await cdp.eval("(JSON.parse(localStorage.getItem('kidstry:v1')).games.clock || {}).plays || 0");
+  if (untouched === 5) failures.push('やめる を おしたのに よみこまれた');
+
+  // もういちど わたして こんどは よみこむ
+  await cdp.setFileInput('.screen-parent input[type=file]', fixture);
+  await waitFor(() => cdp.eval("!!document.querySelector('.modal-btn-ok')"), { label: 'よみこむ ボタン' });
+  await sleep(400);
+  await cdp.shot('11-backup-confirm');
+  await cdp.eval("document.querySelector('.modal-btn-ok').click()");
+  await sleep(400);
+
+  const after = await cdp.eval("JSON.parse(localStorage.getItem('kidstry:v1'))");
+  if (after.games.clock?.plays !== 5) failures.push('よみこんだ きろくが はんえい されない');
+  if (after.stickers.length !== 3) failures.push('よみこんだ シールが はんえい されない');
+  if (after.profile.name !== 'テスト') failures.push('よみこんだ なまえが はんえい されない');
+  if (!failures.length) console.log('  ✓ よみこみ（きろくが おきかわる）');
+
+  // おわりの おしらせを とじて、がめんが こわれて いない ことを たしかめる
+  const done = await cdp.eval("!!document.querySelector('.modal-card')");
+  if (done) await cdp.eval("document.querySelector('.modal-btn-ok').click()");
+  await sleep(200);
+  const stillThere = await cdp.eval("!!document.querySelector('.backup-actions')");
+  if (!stillThere) failures.push('よみこみ後に がめんが こわれた');
+  await cdp.eval("document.querySelector('.backup-actions').scrollIntoView({ block: 'center' })");
+  await sleep(350);
+  await cdp.shot('12-backup-card');
+  return failures;
+}
+
 async function run() {
   if (!findChromium()) {
     console.warn('⚠ Chromium が みつからないので スモークテストは スキップします。');
@@ -277,6 +387,9 @@ async function run() {
 
     const saved = await cdp.eval("JSON.parse(localStorage.getItem('kidstry:v1')).games['hiragana-find'].plays");
     if (!saved) failures.push('きろくが ほぞん されて いない');
+
+    console.log('▶ きろくの ほぞん・よみこみ の かくにん');
+    failures.push(...await checkBackup(cdp, join(tmpdir(), `kidstry-backup-${Date.now()}`)));
 
     console.log('▶ PWA（オフライン）の かくにん');
     failures.push(...await checkOffline(cdp));
