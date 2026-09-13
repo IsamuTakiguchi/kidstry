@@ -1,17 +1,18 @@
 #!/usr/bin/env node
-// SVG から PNG アイコンを つくる（どうこんの Chromium を つかう。インストール ふよう）
-import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+// SVG から PNG アイコンを つくる（どうこんの Chromium を つかう。npm install ふよう）
+//
+// スクリーンショットでは なく canvas に えがいて とりだす。
+// headless の スクリーンショットは ウィンドウの わくの ぶん したが かけるため。
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { buildAssets } from './make-assets.mjs';
+import { launchBrowser, findChromium } from './cdp.mjs';
 
-const run = promisify(execFile);
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'assets/generated');
+
+export { findChromium };
 
 const TARGETS = [
   { src: 'assets/icons/app-icon.svg', out: 'icon-192.png', size: 192 },
@@ -23,70 +24,89 @@ const TARGETS = [
   { src: 'assets/icons/app-icon-maskable.svg', out: 'icon-maskable-512.png', size: 512 },
 ];
 
-export function findChromium() {
-  const candidates = [
-    process.env.CHROMIUM_PATH,
-    process.env.PLAYWRIGHT_CHROMIUM_PATH,
-    '/opt/pw-browsers/chromium',
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/google-chrome',
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  ].filter(Boolean);
-  return candidates.find((p) => existsSync(p)) || null;
+/** PNG の IHDR から よこ・たてを よむ */
+export function pngSize(buffer) {
+  if (buffer.length < 24 || buffer.toString('binary', 1, 4) !== 'PNG') return null;
+  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
 }
 
-async function shot(chromium, html, outPath, size) {
-  const dir = join(tmpdir(), `kidstry-icon-${process.pid}-${size}`);
-  await mkdir(dir, { recursive: true });
-  const page = join(dir, 'page.html');
-  await writeFile(page, html, 'utf8');
-  await run(chromium, [
-    '--headless=new',
-    '--disable-gpu',
-    '--no-sandbox',
-    '--hide-scrollbars',
-    '--force-device-scale-factor=1',
-    '--default-background-color=00000000',
-    `--screenshot=${outPath}`,
-    `--window-size=${size},${size}`,
-    `file://${page}`,
-  ], { timeout: 60000 });
-  await rm(dir, { recursive: true, force: true });
-}
-
-function pageFor(svg, size) {
-  return `<!doctype html><meta charset="utf-8">
-<style>html,body{margin:0;padding:0;background:transparent}
-svg{display:block;width:${size}px;height:${size}px}</style>
-${svg.replace(/\swidth="\d+"|\sheight="\d+"/g, '')}`;
+/**
+ * ブラウザの なかで SVG を canvas に えがき、PNG（base64）と
+ * 「どこまで えが えがかれて いるか」を かえす。
+ */
+function renderScript(svg, size) {
+  const encoded = Buffer.from(svg, 'utf8').toString('base64');
+  return `(async () => {
+    const img = new Image();
+    img.src = 'data:image/svg+xml;base64,${encoded}';
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = ${size};
+    canvas.height = ${size};
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, ${size}, ${size});
+    const { data } = ctx.getImageData(0, 0, ${size}, ${size});
+    let lastRow = -1;
+    let opaque = 0;
+    for (let y = 0; y < ${size}; y++) {
+      for (let x = 0; x < ${size}; x++) {
+        if (data[(y * ${size} + x) * 4 + 3] > 8) { opaque++; if (y > lastRow) lastRow = y; }
+      }
+    }
+    return {
+      png: canvas.toDataURL('image/png').split(',')[1],
+      lastRow,
+      coverage: opaque / (${size} * ${size}),
+    };
+  })()`;
 }
 
 export async function makeIcons() {
   await buildAssets();
-  const chromium = findChromium();
   await mkdir(OUT, { recursive: true });
-  if (!chromium) {
+  if (!findChromium()) {
     console.warn('⚠ Chromium が みつからないので PNG は つくりません（SVG アイコンだけで うごきます）。');
     console.warn('  CHROMIUM_PATH=/path/to/chrome npm run icons で つくれます。');
-    return [];
+    return { made: [], problems: [] };
   }
+
+  const session = await launchBrowser({ width: 600, height: 600 });
   const made = [];
-  for (const t of TARGETS) {
-    const svg = await readFile(join(ROOT, t.src), 'utf8');
-    const outPath = join(OUT, t.out);
-    try {
-      await shot(chromium, pageFor(svg, t.size), outPath, t.size);
+  const problems = [];
+  try {
+    for (const t of TARGETS) {
+      const svg = await readFile(join(ROOT, t.src), 'utf8');
+      const result = await session.cdp.eval(renderScript(svg, t.size));
+      const buffer = Buffer.from(result.png, 'base64');
+      const dims = pngSize(buffer);
+
+      // つくった ものが ただしいか その場で たしかめる
+      if (!dims || dims.width !== t.size || dims.height !== t.size) {
+        problems.push(`${t.out}: おおきさが ${dims ? `${dims.width}x${dims.height}` : 'ふめい'}（${t.size}x${t.size} のはず）`);
+        continue;
+      }
+      if (result.lastRow < t.size - 2) {
+        problems.push(`${t.out}: したが ${t.size - 1 - result.lastRow}px かけて いる`);
+        continue;
+      }
+      if (result.coverage < 0.5) {
+        problems.push(`${t.out}: えが すくなすぎる（${Math.round(result.coverage * 100)}%）`);
+        continue;
+      }
+
+      await writeFile(join(OUT, t.out), buffer);
       made.push(t.out);
-      console.log(`  ✓ ${t.out} (${t.size}px)`);
-    } catch (err) {
-      console.warn(`  ✗ ${t.out}: ${err.message}`);
+      console.log(`  ✓ ${t.out} (${t.size}px, ${Math.round(result.coverage * 100)}% ぬられて いる)`);
     }
+  } finally {
+    await session.close();
   }
-  return made;
+  problems.forEach((p) => console.error(`  ✗ ${p}`));
+  return { made, problems };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const made = await makeIcons();
+  const { made, problems } = await makeIcons();
   console.log(`つくった PNG: ${made.length}こ`);
+  if (problems.length) process.exitCode = 1;
 }

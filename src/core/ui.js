@@ -83,12 +83,19 @@ export function starsHtml(count, total = 3) {
 
 export const MASCOT_POSES = ['normal', 'happy', 'cheer', 'think'];
 
-export function mascotImg(pose = 'normal', cls = 'mascot') {
+export const MASCOT_NAME = 'ガオくん';
+
+/** マスコットの えの ばしょ（パスは ここ 1かしょだけ） */
+export function mascotSrc(pose = 'normal') {
   const safe = MASCOT_POSES.includes(pose) ? pose : 'normal';
+  return `assets/characters/mascot-${safe}.svg`;
+}
+
+export function mascotImg(pose = 'normal', cls = 'mascot') {
   return h('img', {
     class: cls,
-    src: `assets/characters/torii-${safe}.svg`,
-    alt: 'トリィ',
+    src: mascotSrc(pose),
+    alt: MASCOT_NAME,
     draggable: 'false',
   });
 }

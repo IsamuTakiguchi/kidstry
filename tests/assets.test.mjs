@@ -25,7 +25,7 @@ test('あそびの アイコン ファイルが ある', () => {
 
 test('マスコットの え が そろっている', () => {
   for (const pose of MASCOT_POSES) {
-    assert.ok(existsSync(join(ROOT, `assets/characters/torii-${pose}.svg`)), `${pose} が ない`);
+    assert.ok(existsSync(join(ROOT, `assets/characters/mascot-${pose}.svg`)), `${pose} が ない`);
   }
 });
 

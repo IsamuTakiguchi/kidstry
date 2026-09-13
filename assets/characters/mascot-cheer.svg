@@ -1,18 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="きっずトライ">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffd98a"/>
-      <stop offset=".48" stop-color="#8be0c0"/>
-      <stop offset="1" stop-color="#63c6f0"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="0" fill="url(#bg)"/>
-  <circle cx="256" cy="286" r="196" fill="#fff" opacity=".24"/>
-  <g fill="#fff" opacity=".55">
-    <circle cx="86" cy="92" r="18"/><circle cx="430" cy="124" r="12"/><circle cx="448" cy="398" r="16"/><circle cx="70" cy="404" r="11"/>
-  </g>
-  <g transform="translate(87.03999999999999 105.03999999999999) scale(1.6896)">
-    
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="ガオくん">
   <g transform="">
     <ellipse cx="100" cy="188" rx="52" ry="8" fill="#000" opacity=".08"/>
     <g>
@@ -31,9 +17,9 @@
       <circle cx="110" cy="180" r="4"/><circle cx="122" cy="182" r="4"/><circle cx="134" cy="180" r="4"/>
     </g>
     <g fill="#4fc079">
-      <ellipse cx="42" cy="126" rx="13" ry="19" transform="rotate(16 42 126)"/>
-      <ellipse cx="158" cy="126" rx="13" ry="19" transform="rotate(-16 158 126)"/>
-    </g>
+        <ellipse cx="36" cy="86" rx="14" ry="21" transform="rotate(-38 36 86)"/>
+        <ellipse cx="164" cy="86" rx="14" ry="21" transform="rotate(38 164 86)"/>
+      </g>
     <g fill="#ffb703" stroke="#f08c00" stroke-width="2" stroke-linejoin="round">
       <path d="M69 62l9-22 9 22z"/>
       <path d="M89 56l11-28 11 28z"/>
@@ -53,11 +39,8 @@
       <path d="M70 88c5-8 14-8 19 0" fill="none" stroke="#2b3a4a" stroke-width="6" stroke-linecap="round"/>
       <path d="M111 88c5-8 14-8 19 0" fill="none" stroke="#2b3a4a" stroke-width="6" stroke-linecap="round"/>
   </g>
-  
-
-  </g>
-  <g fill="#ff9f1c">
-    <path d="M74 214l10 26 26 10-26 10-10 26-10-26-26-10 26-10z"/>
-    <path d="M432 250l8 20 20 8-20 8-8 20-8-20-20-8 20-8z"/>
-  </g>
+  <g fill="#ffb703">
+        <path d="M22 44l4 11 11 4-11 4-4 11-4-11-11-4 11-4z"/>
+        <path d="M180 58l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"/>
+      </g>
 </svg>

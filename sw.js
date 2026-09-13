@@ -44,10 +44,10 @@ const ASSETS = [
   'assets/icons/game-seikatsu.svg',
   'assets/icons/game-shapes.svg',
   'assets/icons/game-word-start.svg',
-  'assets/characters/torii-normal.svg',
-  'assets/characters/torii-happy.svg',
-  'assets/characters/torii-cheer.svg',
-  'assets/characters/torii-think.svg',
+  'assets/characters/mascot-normal.svg',
+  'assets/characters/mascot-happy.svg',
+  'assets/characters/mascot-cheer.svg',
+  'assets/characters/mascot-think.svg',
 ];
 
 self.addEventListener('install', (event) => {

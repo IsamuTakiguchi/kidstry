@@ -8,82 +8,123 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FONT = "font-family=\"'Hiragino Maru Gothic ProN','Hiragino Sans','Noto Sans JP',system-ui,sans-serif\"";
 
 const C = {
-  body: '#8ed7f7',
-  bodyDark: '#5cc2ec',
-  belly: '#f2fbff',
-  beak: '#ffb23f',
-  beakDark: '#f59516',
+  body: '#7bd88f',
+  bodyDark: '#4fc079',
+  belly: '#effbf1',
+  spike: '#ffb703',
+  spikeDark: '#f08c00',
   cheek: '#ffa5be',
   eye: '#2b3a4a',
-  tuft: '#ffd166',
+  mouth: '#d95f6b',
 };
-
-// ---- マスコット「トリィ」 ---------------------------------------------------
+// ---- マスコット「ガオくん」（きょうりゅう） ---------------------------------
 function eyes(pose) {
-  if (pose === 'happy') {
+  if (pose === 'happy' || pose === 'cheer') {
     return `
-      <path d="M72 92c4-7 12-7 16 0" fill="none" stroke="${C.eye}" stroke-width="6" stroke-linecap="round"/>
-      <path d="M112 92c4-7 12-7 16 0" fill="none" stroke="${C.eye}" stroke-width="6" stroke-linecap="round"/>`;
+      <path d="M70 88c5-8 14-8 19 0" fill="none" stroke="${C.eye}" stroke-width="6" stroke-linecap="round"/>
+      <path d="M111 88c5-8 14-8 19 0" fill="none" stroke="${C.eye}" stroke-width="6" stroke-linecap="round"/>`;
   }
   if (pose === 'think') {
     return `
-      <circle cx="80" cy="95" r="7.5" fill="${C.eye}"/>
-      <circle cx="82.5" cy="92" r="2.6" fill="#fff"/>
-      <path d="M112 95c4-5 12-5 16 0" fill="none" stroke="${C.eye}" stroke-width="6" stroke-linecap="round"/>`;
+      <circle cx="79" cy="90" r="8" fill="${C.eye}"/>
+      <circle cx="82" cy="86.5" r="2.8" fill="#fff"/>
+      <path d="M111 90c5-6 14-6 19 0" fill="none" stroke="${C.eye}" stroke-width="6" stroke-linecap="round"/>`;
   }
   return `
-    <circle cx="80" cy="95" r="8.5" fill="${C.eye}"/>
-    <circle cx="83" cy="91.5" r="3" fill="#fff"/>
-    <circle cx="120" cy="95" r="8.5" fill="${C.eye}"/>
-    <circle cx="123" cy="91.5" r="3" fill="#fff"/>`;
+    <circle cx="79" cy="90" r="9" fill="${C.eye}"/>
+    <circle cx="82.2" cy="86" r="3.2" fill="#fff"/>
+    <circle cx="121" cy="90" r="9" fill="${C.eye}"/>
+    <circle cx="124.2" cy="86" r="3.2" fill="#fff"/>`;
 }
 
-function beak(pose) {
-  if (pose === 'happy' || pose === 'cheer') {
-    return `<path d="M100 104c11 0 18 6 18 12s-8 12-18 12-18-6-18-12 7-12 18-12z" fill="${C.beakDark}"/>
-            <path d="M84 112h32c-1-5-7-8-16-8s-15 3-16 8z" fill="${C.beak}"/>`;
-  }
-  return `<path d="M100 104c9 0 16 5 16 10s-7 10-16 10-16-5-16-10 7-10 16-10z" fill="${C.beak}"/>
-          <path d="M84 114c0-5 7-10 16-10s16 5 16 10z" fill="${C.beakDark}" opacity=".45"/>`;
+/** はなさきと くち */
+function muzzle(pose) {
+  const open = pose === 'happy' || pose === 'cheer';
+  const mouth = open
+    ? `<path d="M86 122c0-4 28-4 28 0 0 9-6 15-14 15s-14-6-14-15z" fill="${C.mouth}"/>
+       <path d="M92 133c3-3 13-3 16 0-2 3-6 5-8 5s-6-2-8-5z" fill="#ff9aa8"/>`
+    : `<path d="M88 124c4 6 8 8 12 8s8-2 12-8" fill="none" stroke="${C.eye}" stroke-width="4.5" stroke-linecap="round"/>`;
+  return `
+    <ellipse cx="100" cy="118" rx="30" ry="22" fill="${C.belly}"/>
+    <circle cx="90" cy="107" r="3.1" fill="${C.eye}" opacity=".6"/>
+    <circle cx="110" cy="107" r="3.1" fill="${C.eye}" opacity=".6"/>
+    ${mouth}`;
 }
 
-function wings(pose) {
+/** せなかと あたまの とげ */
+function spikes() {
+  return `<g fill="${C.spike}" stroke="${C.spikeDark}" stroke-width="2" stroke-linejoin="round">
+      <path d="M69 62l9-22 9 22z"/>
+      <path d="M89 56l11-28 11 28z"/>
+      <path d="M113 62l9-22 9 22z"/>
+    </g>`;
+}
+
+/** しっぽ（とげつき） */
+function tail() {
+  return `<g>
+      <path d="M146 150c18 16 44 10 48-14 2-12-8-18-13-9-7 12-21 14-33 8z" fill="${C.bodyDark}"/>
+      <g fill="${C.spike}" stroke="${C.spikeDark}" stroke-width="1.6" stroke-linejoin="round">
+        <path d="M170 152l3-13 9 10z"/>
+        <path d="M186 141l-1-13 10 7z"/>
+      </g>
+    </g>`;
+}
+
+/** て */
+function arms(pose) {
   if (pose === 'cheer') {
-    return `<ellipse cx="34" cy="92" rx="17" ry="26" fill="${C.bodyDark}" transform="rotate(-32 34 92)"/>
-            <ellipse cx="166" cy="92" rx="17" ry="26" fill="${C.bodyDark}" transform="rotate(32 166 92)"/>`;
+    return `<g fill="${C.bodyDark}">
+        <ellipse cx="36" cy="86" rx="14" ry="21" transform="rotate(-38 36 86)"/>
+        <ellipse cx="164" cy="86" rx="14" ry="21" transform="rotate(38 164 86)"/>
+      </g>`;
   }
-  return `<ellipse cx="38" cy="126" rx="16" ry="24" fill="${C.bodyDark}" transform="rotate(14 38 126)"/>
-          <ellipse cx="162" cy="126" rx="16" ry="24" fill="${C.bodyDark}" transform="rotate(-14 162 126)"/>`;
+  return `<g fill="${C.bodyDark}">
+      <ellipse cx="42" cy="126" rx="13" ry="19" transform="rotate(16 42 126)"/>
+      <ellipse cx="158" cy="126" rx="13" ry="19" transform="rotate(-16 158 126)"/>
+    </g>`;
+}
+
+/** あし */
+function feet() {
+  return `<g fill="${C.bodyDark}">
+      <ellipse cx="76" cy="176" rx="24" ry="13"/>
+      <ellipse cx="124" cy="176" rx="24" ry="13"/>
+    </g>
+    <g fill="${C.belly}">
+      <circle cx="62" cy="180" r="4"/><circle cx="74" cy="182" r="4"/><circle cx="86" cy="180" r="4"/>
+      <circle cx="110" cy="180" r="4"/><circle cx="122" cy="182" r="4"/><circle cx="134" cy="180" r="4"/>
+    </g>`;
 }
 
 function extras(pose) {
   if (pose === 'cheer') {
-    return `<g fill="${C.tuft}">
-        <path d="M22 40l4 10 10 4-10 4-4 10-4-10-10-4 10-4z"/>
-        <path d="M178 52l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"/>
+    return `<g fill="${C.spike}">
+        <path d="M22 44l4 11 11 4-11 4-4 11-4-11-11-4 11-4z"/>
+        <path d="M180 58l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"/>
       </g>`;
   }
   if (pose === 'think') {
-    return `<text x="163" y="52" ${FONT} font-size="46" font-weight="700" fill="${C.beakDark}" text-anchor="middle">?</text>`;
+    return `<text x="168" y="50" ${FONT} font-size="46" font-weight="700" fill="${C.spikeDark}" text-anchor="middle">?</text>`;
   }
   return '';
 }
 
 export function mascotSvg(pose = 'normal') {
-  const tilt = pose === 'think' ? 'rotate(-6 100 110)' : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="トリィ">
+  const tilt = pose === 'think' ? 'rotate(-6 100 114)' : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="ガオくん">
   <g transform="${tilt}">
-    <ellipse cx="100" cy="186" rx="46" ry="8" fill="#000" opacity=".08"/>
-    <path d="M78 176l-8 12h22z" fill="${C.beakDark}"/>
-    <path d="M122 176l8 12h-22z" fill="${C.beakDark}"/>
-    ${wings(pose)}
-    <ellipse cx="100" cy="112" rx="66" ry="64" fill="${C.body}"/>
-    <ellipse cx="100" cy="128" rx="44" ry="42" fill="${C.belly}"/>
-    <path d="M100 30c-4 10-12 14-12 14s10 6 12 14c2-8 12-14 12-14s-8-4-12-14z" fill="${C.tuft}"/>
-    <circle cx="62" cy="118" r="11" fill="${C.cheek}" opacity=".75"/>
-    <circle cx="138" cy="118" r="11" fill="${C.cheek}" opacity=".75"/>
+    <ellipse cx="100" cy="188" rx="52" ry="8" fill="#000" opacity=".08"/>
+    ${tail()}
+    ${feet()}
+    ${arms(pose)}
+    ${spikes()}
+    <ellipse cx="100" cy="114" rx="62" ry="60" fill="${C.body}"/>
+    <ellipse cx="100" cy="132" rx="40" ry="38" fill="${C.belly}" opacity=".55"/>
+    <circle cx="58" cy="112" r="11" fill="${C.cheek}" opacity=".7"/>
+    <circle cx="142" cy="112" r="11" fill="${C.cheek}" opacity=".7"/>
+    ${muzzle(pose)}
     ${eyes(pose)}
-    ${beak(pose)}
   </g>
   ${extras(pose)}
 </svg>`;
@@ -181,7 +222,7 @@ async function write(path, content) {
 export async function buildAssets() {
   const written = [];
   for (const pose of ['normal', 'happy', 'cheer', 'think']) {
-    written.push(await write(`assets/characters/torii-${pose}.svg`, mascotSvg(pose)));
+    written.push(await write(`assets/characters/mascot-${pose}.svg`, mascotSvg(pose)));
   }
   written.push(await write('assets/icons/app-icon.svg', appIconSvg()));
   written.push(await write('assets/icons/app-icon-maskable.svg', appIconSvg({ maskable: true })));

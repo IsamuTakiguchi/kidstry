@@ -129,7 +129,7 @@ npm run smoke      # ブラウザ自動操作テスト＋スクリーンショ�
 | `npm start` | `tools/serve.mjs`。Node標準モジュールだけの静的サーバー（ESモジュール配信に必要）。`SERVE_DIR` で配信元を変更可 |
 | `npm run build` | `tools/build-site.mjs`。アプリの動作に必要なファイルだけを `_site/` に集める（約400KB） |
 | `npm test` | `tests/*.test.mjs` を実行。問題生成ロジック・記録・描画・アセット整合性を検証 |
-| `npm run icons` | `tools/make-assets.mjs` でマスコット・アイコンのSVGを生成し、Chromiumで各サイズのPNGに書き出し |
+| `npm run icons` | `tools/make-assets.mjs` でマスコット・アイコンのSVGを生成し、Chromiumのcanvasで各サイズのPNGに書き出し（サイズと塗り面積を自己検証） |
 | `npm run smoke` | Chromiumを **CDP（DevTools Protocol）** で直接操作して総合確認（下記）し、`docs/screenshots/` に画像を保存 |
 
 `npm run smoke` が確認すること:
@@ -165,10 +165,10 @@ src/
   games/                9つのあそびの「問題生成関数」（純粋関数）
   screens/              ホーム・けっか・シールちょう・おうちのかた
 assets/
-  characters/           マスコット「トリィ」4ポーズ（SVG）
+  characters/           マスコット「ガオくん」4ポーズ（SVG）
   icons/                アプリ・あそびアイコン（SVG）
   generated/            書き出したPNGアイコン
-tools/                  serve / build-site / make-assets / make-icons / smoke
+tools/                  serve / build-site / make-assets / make-icons / smoke / cdp（共通のブラウザ操作）
 tests/                  ユニットテスト
 ```
 
@@ -178,7 +178,7 @@ tests/                  ユニットテスト
 
 ## つくったもの・権利について
 
-- マスコット **「トリィ」**、アプリアイコン、あそびアイコンは、このリポジトリのために描き下ろしたオリジナルのSVGです
+- マスコット **きょうりゅうの「ガオくん」**、アプリアイコン、あそびアイコンは、このリポジトリのために描き下ろしたオリジナルのSVGです
 - 絵カード・シールには、OS標準の絵文字（Unicode）を使用しています
 - 学習分野の構成は一般的な幼児教育の領域（ことば・かず・とけい・えいご・かたち・ちえ・生活習慣）を参考にしています。
   特定の通信教育サービスのキャラクター・イラスト・音声・商標は一切使用していません

@@ -1,5 +1,5 @@
 // ぜんぶの ゲームで きょうつうの もんだい すすめかた
-import { h, clear, wait, clockSvg, emojiGroupHtml, shapeSvg, mascotImg } from './ui.js';
+import { h, clear, wait, clockSvg, emojiGroupHtml, shapeSvg, mascotImg, mascotSrc } from './ui.js';
 import { sfx, speak, cancelSpeech } from './audio.js';
 import { QUESTIONS_PER_SESSION } from './state.js';
 
@@ -121,7 +121,7 @@ export function startQuiz({ root, game, level, onExit, onFinish, count = QUESTIO
     stage.innerHTML = renderStage(q.stage);
     stage.hidden = !hasStage;
     quizMain.className = `quiz-main ${hasStage ? '' : 'no-stage'}`;
-    mascot.src = 'assets/characters/torii-normal.svg';
+    mascot.src = mascotSrc('normal');
     clear(choicesEl);
     choicesEl.className = `choices ${q.layout || 'grid4'}`;
     for (const choice of q.choices) {
@@ -145,7 +145,7 @@ export function startQuiz({ root, game, level, onExit, onFinish, count = QUESTIO
       locked = true;
       if (!missedThisQuestion) firstTryCorrect += 1;
       btn.classList.add('is-correct');
-      mascot.src = 'assets/characters/torii-happy.svg';
+      mascot.src = mascotSrc('happy');
       sfx.correct();
       showToast(missedThisQuestion ? 'できた！' : 'せいかい！', 'good');
       if (q.reveal) {
@@ -165,7 +165,7 @@ export function startQuiz({ root, game, level, onExit, onFinish, count = QUESTIO
       missedThisQuestion = true;
       btn.classList.add('is-wrong');
       btn.disabled = true;
-      mascot.src = 'assets/characters/torii-think.svg';
+      mascot.src = mascotSrc('think');
       sfx.wrong();
       showToast('もういちど！', 'retry');
       speak('もういちど', 'ja-JP');
