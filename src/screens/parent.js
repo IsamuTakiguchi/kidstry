@@ -4,6 +4,7 @@ import { GAMES } from '../games/index.js';
 import {
   accuracy, domainStats, totalPlays,
   exportPayload, backupFileName, parseBackup,
+  medalCount, hasMedal, stickerBookComplete, STICKER_GOAL,
 } from '../core/state.js';
 import { STICKERS } from '../data/stickers.js';
 
@@ -40,14 +41,16 @@ export function renderParent({ root, store, onHome, onReset }) {
   const gameRows = GAMES.map((game) => {
     const rec = state.games[game.id];
     const acc = accuracy(state, game.id);
+    const locked = game.locked && !stickerBookComplete(state);
     return h(
       'tr',
-      {},
-      h('td', {}, game.title),
+      { class: locked ? 'row-locked' : '' },
+      h('td', {}, locked ? `🔒 ${game.title}` : game.title),
       h('td', {}, game.domain),
       h('td', { class: 'num' }, rec ? `${rec.plays}回` : '—'),
       h('td', { class: 'num' }, acc == null ? '—' : `${Math.round(acc * 100)}%`),
       h('td', { html: starsHtml(rec ? rec.bestStars : 0) }),
+      h('td', {}, hasMedal(state, game.id) ? '🏅' : '—'),
       h('td', {}, rec?.lastPlayed || '—'),
     );
   });
@@ -106,7 +109,8 @@ export function renderParent({ root, store, onHome, onReset }) {
           kpi('あそんだ回数', `${totalPlays(state)}回`),
           kpi('あそんだ時間', formatDuration(state.totalPlayMs)),
           kpi('れんぞく日数', `${Math.max(state.streak, 0)}日`),
-          kpi('あつめたシール', `${state.stickers.length} / ${STICKERS.length}`),
+          kpi('あつめたシール', `${state.stickers.length} / ${STICKER_GOAL}`),
+          kpi('きんメダル', `${medalCount(state, GAMES)} / ${GAMES.length}`),
         ),
       ),
       h('section', { class: 'card' }, h('h2', {}, '分野べつ 正答率'), h('div', { class: 'bars' }, domainRows)),
@@ -120,11 +124,13 @@ export function renderParent({ root, store, onHome, onReset }) {
           h(
             'table',
             { class: 'stat-table' },
-            h('thead', {}, h('tr', {}, ...['あそび', '分野', '回数', '正答率', 'さいこう', 'さいご'].map((t) => h('th', {}, t)))),
+            h('thead', {}, h('tr', {}, ...['あそび', '分野', '回数', '正答率', 'さいこう', 'メダル', 'さいご'].map((t) => h('th', {}, t)))),
             h('tbody', {}, gameRows),
           ),
         ),
-        h('p', { class: 'note' }, '※正答率は「1回目の選択で正解できた割合」です。まちがえても何度でも挑戦できます。'),
+        h('p', { class: 'note' },
+          '※正答率は「1回目の選択で正解できた割合」です。まちがえても何度でも挑戦できます。'
+          + ' 🔒はシールを24枚集めると解放されるあそび、🏅は★3を達成すると獲得できるきんメダルです。'),
       ),
       h(
         'section',

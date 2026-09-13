@@ -1,8 +1,11 @@
 import { h, clear } from './core/ui.js';
-import { createStore, recordSession, awardSticker, starsFor } from './core/state.js';
+import {
+  createStore, recordSession, awardSticker, starsFor,
+  stickerBookComplete, sessionRewards,
+} from './core/state.js';
 import { configureAudio, unlockAudio, sfx, speak, cancelSpeech } from './core/audio.js';
 import { startQuiz } from './core/quiz.js';
-import { GAMES, gameById } from './games/index.js';
+import { GAMES, LOCKED_GAMES, gameById } from './games/index.js';
 import { renderHome } from './screens/home.js';
 import { renderResult } from './screens/result.js';
 import { renderStickerBook } from './screens/stickers.js';
@@ -65,6 +68,7 @@ function goQuiz(gameId) {
   cleanup();
   const game = gameById(gameId);
   if (!game) return goHome();
+  if (game.locked && !stickerBookComplete(store.get())) return goHome();
   dispose = startQuiz({
     root,
     game,
@@ -76,11 +80,16 @@ function goQuiz(gameId) {
 
 function finishQuiz(game, result) {
   cleanup();
+  const before = store.get();
   const stars = starsFor(result.firstTryCorrect, result.questions);
-  let next = recordSession(store.get(), result);
+  let next = recordSession(before, result);
   const awarded = awardSticker(next);
   next = awarded.state;
   store.set(next);
+
+  // 「はじめての きんメダル」と「シール ぜんぶ あつめた」を みつける
+  const { newMedal, justUnlocked } = sessionRewards(before, next, game.id);
+
   renderResult({
     root,
     game,
@@ -88,6 +97,8 @@ function finishQuiz(game, result) {
     firstTryCorrect: result.firstTryCorrect,
     questions: result.questions,
     sticker: awarded.sticker,
+    newMedal,
+    unlockedGames: justUnlocked ? LOCKED_GAMES : null,
     onRetry: () => goQuiz(game.id),
     onHome: goHome,
     onStickers: goStickers,
@@ -126,4 +137,4 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 goStart();
 
 // じどう テスト から つかう
-window.__kidstry = { store, goHome, goQuiz, goStart, goStickers, goParent, gameIds: GAMES.map((g) => g.id) };
+window.__kidstry = { store, goHome, goQuiz, goStart, goStickers, goParent, gameIds: GAMES.map((g) => g.id), lockedIds: LOCKED_GAMES.map((g) => g.id) };

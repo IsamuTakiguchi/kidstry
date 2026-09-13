@@ -7,9 +7,14 @@ const PRAISE = {
   1: 'さいごまで がんばったね！',
 };
 
-export function renderResult({ root, game, stars, firstTryCorrect, questions, sticker, onRetry, onHome, onStickers }) {
+export function renderResult({
+  root, game, stars, firstTryCorrect, questions, sticker,
+  newMedal = false, unlockedGames = null,
+  onRetry, onHome, onStickers,
+}) {
   const starBox = h('div', { class: 'result-stars', html: starsHtml(0) });
   const stickerBox = h('div', { class: 'result-sticker' });
+  const bonusBox = h('div', { class: 'result-bonus' });
 
   const screen = h(
     'div',
@@ -23,6 +28,7 @@ export function renderResult({ root, game, stars, firstTryCorrect, questions, st
       starBox,
       h('p', { class: 'result-score' }, `${game.title}：10もんちゅう ${firstTryCorrect}もん せいかい`),
       stickerBox,
+      bonusBox,
       h(
         'div',
         { class: 'result-actions' },
@@ -53,6 +59,39 @@ export function renderResult({ root, game, stars, firstTryCorrect, questions, st
         </div>
         <p class="sticker-caption">「${sticker.name}」の シールを もらったよ！</p>`;
       speak(`${sticker.name}の シールを もらったよ`, 'ja-JP');
+    }
+
+    if (newMedal) {
+      await wait(520);
+      sfx.sticker();
+      bonusBox.append(h(
+        'div',
+        { class: 'bonus-card bonus-medal' },
+        h('span', { class: 'bonus-emoji' }, '🏅'),
+        h('div', {},
+          h('strong', {}, 'きんメダル ゲット！'),
+          h('span', { class: 'bonus-note' }, `「${game.title}」で ★を 3つ とったよ`)),
+      ));
+      speak('きんメダル ゲット', 'ja-JP');
+    }
+
+    if (unlockedGames && unlockedGames.length) {
+      await wait(620);
+      sfx.fanfare();
+      bonusBox.append(h(
+        'div',
+        { class: 'bonus-card bonus-unlock' },
+        h('p', { class: 'bonus-headline' }, '🎉 シールが ぜんぶ あつまった！'),
+        h('p', { class: 'bonus-note' }, 'あたらしい あそびが ふえたよ'),
+        h('div', { class: 'unlock-row' }, unlockedGames.map((g) => h(
+          'span',
+          { class: 'unlock-item' },
+          h('img', { class: 'unlock-icon', src: g.icon, alt: '', draggable: 'false' }),
+          h('span', {}, g.title),
+        ))),
+        h('p', { class: 'bonus-note' }, 'つぎは 🏅きんメダルを あつめよう！'),
+      ));
+      speak('シールが ぜんぶ あつまったよ。あたらしい あそびが ふえました', 'ja-JP');
     }
   }
 }

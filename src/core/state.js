@@ -226,3 +226,32 @@ export function parseBackup(text) {
     summary: backupSummary(state),
   };
 }
+
+// ---- あたらしい あそびの かいきん と きんメダル --------------------------
+export const STICKER_GOAL = STICKERS.length;
+
+/** シールを ぜんぶ あつめたか（あたらしい あそびが ふえる じょうけん） */
+export function stickerBookComplete(state) {
+  return state.stickers.length >= STICKER_GOAL;
+}
+
+export function stickersLeft(state) {
+  return Math.max(0, STICKER_GOAL - state.stickers.length);
+}
+
+/** きんメダルは「その あそびで ★3を とった」ことで もらえる（ほぞん しない みちびき値） */
+export function hasMedal(state, gameId) {
+  return state.games[gameId]?.bestStars === 3;
+}
+
+export function medalCount(state, gameList) {
+  return gameList.filter((g) => hasMedal(state, g.id)).length;
+}
+
+/** 1かい あそびおわった あとの「あたらしい ごほうび」を みつける */
+export function sessionRewards(before, after, gameId) {
+  return {
+    newMedal: !hasMedal(before, gameId) && hasMedal(after, gameId),
+    justUnlocked: !stickerBookComplete(before) && stickerBookComplete(after),
+  };
+}

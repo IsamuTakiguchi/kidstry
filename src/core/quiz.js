@@ -11,6 +11,18 @@ export function renderStage(stage) {
       return `<div class="stage-emoji">${stage.emoji}</div><div class="stage-word">${[...stage.word]
         .map((c) => `<span class="${c === '◯' ? 'blank' : ''}">${c}</span>`)
         .join('')}</div>`;
+    case 'chain': {
+      const chars = [...stage.word];
+      const at = chars.lastIndexOf(stage.tail);
+      const word = chars
+        .map((c, i) => (i === at ? `<span class="tail">${c}</span>` : `<span>${c}</span>`))
+        .join('');
+      return `<div class="stage-chain">
+          <div class="stage-emoji">${stage.emoji}</div>
+          <div class="stage-word">${word}</div>
+          <p class="chain-hint"><span class="tail">${stage.tail}</span> から はじまる ことば</p>
+        </div>`;
+    }
     case 'group':
       return emojiGroupHtml(stage.emoji, stage.count);
     case 'addition':

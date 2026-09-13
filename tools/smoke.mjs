@@ -34,6 +34,21 @@ async function startServer() {
   return () => proc.kill('SIGKILL');
 }
 
+/** localStorage の きろくを さしかえて アプリを よみこみ なおす */
+async function seedState(cdp, patch) {
+  await cdp.eval(`(() => {
+    const key = 'kidstry:v1';
+    const cur = JSON.parse(localStorage.getItem(key) || '{}');
+    localStorage.setItem(key, JSON.stringify({ ...cur, ...${JSON.stringify(patch)} }));
+    return true;
+  })()`);
+  await cdp.send('Page.reload');
+  await waitFor(() => cdp.eval("!!document.querySelector('.start-btn')"), { label: 'よみこみ なおし' });
+  await cdp.eval("document.querySelector('.start-btn').click()");
+  await waitFor(() => cdp.eval("!!document.querySelector('.tile')"), { label: 'ホーム' });
+  await sleep(250);
+}
+
 async function gotoApp(cdp) {
   await cdp.send('Page.navigate', { url: BASE });
   await waitFor(() => cdp.eval("!!document.querySelector('.start-btn')"), { label: 'スタート がめん' });
@@ -192,6 +207,78 @@ async function checkBackup(cdp, workDir) {
   return failures;
 }
 
+/** シールを あつめると あたらしい あそびが ふえるか たしかめる */
+async function checkUnlock(cdp, gameIds, lockedIds) {
+  const failures = [];
+  const allStickers = Array.from({ length: 24 }, (_, i) => `st${String(i + 1).padStart(2, '0')}`);
+
+  // あと1まい の じょうたいから あそんで、おいわいが でるか
+  await seedState(cdp, { stickers: allStickers.slice(0, 23) });
+  await cdp.eval(`window.__kidstry.goQuiz('counting')`);
+  await waitFor(() => cdp.eval("!!document.querySelector('.choice')"), { label: 'さいごの 1まいの ため の あそび' });
+  if (!await playThrough(cdp)) failures.push('さいごまで すすめ られなかった');
+  const celebrated = await waitFor(() => cdp.eval("!!document.querySelector('.bonus-unlock')"), {
+    label: 'あそびが ふえた おいわい', timeout: 12000,
+  }).catch(() => false);
+  if (!celebrated) {
+    failures.push('シールを ぜんぶ あつめても おいわいが でない');
+  } else {
+    const text = await cdp.eval("document.querySelector('.bonus-unlock').textContent");
+    if (!text.includes('しりとり')) failures.push('おいわいに あたらしい あそびが のって いない');
+    await sleep(400);
+    await cdp.shot('13-unlock');
+    console.log('  ✓ おいわいが でた');
+  }
+
+  // ふえた あそびが じっさいに ひらくか
+  await cdp.eval("window.__kidstry.goHome()");
+  await sleep(250);
+  if (await cdp.eval("document.querySelectorAll('.tile-locked').length") !== 0) {
+    failures.push('かいきん ごも タイルに かぎが かかった まま');
+  }
+  if (await cdp.eval("document.querySelectorAll('.tile').length") !== gameIds.length) {
+    failures.push(`タイルの かずが ${gameIds.length}こ に ならない`);
+  }
+  await cdp.shot('14-home-unlocked');
+
+  for (const id of lockedIds) {
+    await cdp.eval(`window.__kidstry.goQuiz(${JSON.stringify(id)})`);
+    const ok = await waitFor(() => cdp.eval("!!document.querySelector('.choice')"), { label: `${id}`, timeout: 6000 })
+      .catch(() => false);
+    if (!ok) failures.push(`${id}: かいきん ごも あそべない`);
+    else console.log(`  ✓ ${id}（あそべる ように なった）`);
+    if (id === 'shiritori') {
+      await sleep(300);
+      await cdp.shot('15-shiritori');
+    }
+  }
+
+  // きんメダル：★3を とった あそびが コレクションに のるか
+  await seedState(cdp, {
+    stickers: allStickers,
+    games: {
+      clock: { plays: 3, firstTryCorrect: 30, questions: 30, bestStars: 3, lastPlayed: '2026-09-13' },
+      counting: { plays: 2, firstTryCorrect: 12, questions: 20, bestStars: 2, lastPlayed: '2026-09-13' },
+    },
+  });
+  await cdp.eval("window.__kidstry.goStickers()");
+  await waitFor(() => cdp.eval("!!document.querySelector('.collection-tab')"), { label: 'コレクション' });
+  // シールが そろって いれば メダルの タブが さいしょから ひらく
+  if (!await cdp.eval("!!document.querySelector('.medal-grid')")) {
+    failures.push('シール コンプリート後も メダルの タブが ひらかない');
+    await cdp.eval("[...document.querySelectorAll('.collection-tab')].find((b) => b.textContent.includes('メダル')).click()");
+  }
+  await waitFor(() => cdp.eval("!!document.querySelector('.medal-grid')"), { label: 'メダルの たな' });
+  const owned = await cdp.eval("document.querySelectorAll('.medal-cell.is-owned').length");
+  if (owned !== 1) failures.push(`きんメダルが ${owned}こ（★3の 1こ のはず）`);
+  const slots = await cdp.eval("document.querySelectorAll('.medal-cell').length");
+  if (slots !== gameIds.length) failures.push(`メダルの たなが ${slots}こ（${gameIds.length}こ のはず）`);
+  await sleep(300);
+  await cdp.shot('16-medals');
+  if (!failures.length) console.log('  ✓ きんメダルが コレクションに のる');
+  return failures;
+}
+
 async function run() {
   if (!findChromium()) {
     console.warn('⚠ Chromium が みつからないので スモークテストは スキップします。');
@@ -214,15 +301,33 @@ async function run() {
     await sleep(300);
     await cdp.shot('02-home');
 
-    // 9つの あそびが すべて ひらけるか
+    // かぎの かかって いない あそびは ひらけて、かかって いる ものは ひらけない
     const gameIds = await cdp.eval('window.__kidstry.gameIds');
-    for (const id of gameIds) {
+    const lockedIds = await cdp.eval('window.__kidstry.lockedIds');
+    if (lockedIds.length !== 3) failures.push(`かぎつきの あそびが ${lockedIds.length}こ（3こ のはず）`);
+
+    for (const id of gameIds.filter((g) => !lockedIds.includes(g))) {
       await cdp.eval(`window.__kidstry.goQuiz(${JSON.stringify(id)})`);
       const ok = await waitFor(() => cdp.eval("!!document.querySelector('.choice')"), { label: `${id} の がめん`, timeout: 6000 })
         .catch(() => false);
       if (!ok) failures.push(`${id}: もんだいが ひょうじ されない`);
       else console.log(`  ✓ ${id}`);
     }
+    for (const id of lockedIds) {
+      await cdp.eval("window.__kidstry.goHome()");
+      await sleep(150);
+      await cdp.eval(`window.__kidstry.goQuiz(${JSON.stringify(id)})`);
+      await sleep(400);
+      if (await cdp.eval("!!document.querySelector('.choice')")) {
+        failures.push(`${id}: シールを あつめる まえに あそべて しまう`);
+      } else {
+        console.log(`  ✓ ${id}（まだ あそべない）`);
+      }
+    }
+    await cdp.eval("window.__kidstry.goHome()");
+    await waitFor(() => cdp.eval("document.querySelectorAll('.tile-locked').length === 3"), { label: 'かぎの ついた タイル' });
+    await sleep(200);
+    await cdp.shot('02b-home-locked');
 
     // ひらがな さがしを さいごまで
     await cdp.eval("window.__kidstry.goQuiz('hiragana-find')");
@@ -267,6 +372,9 @@ async function run() {
 
     const saved = await cdp.eval("JSON.parse(localStorage.getItem('kidstry:v1')).games['hiragana-find'].plays");
     if (!saved) failures.push('きろくが ほぞん されて いない');
+
+    console.log('▶ シール コンプリートで あそびが ふえるか');
+    failures.push(...await checkUnlock(cdp, gameIds, lockedIds));
 
     console.log('▶ きろくの ほぞん・よみこみ の かくにん');
     failures.push(...await checkBackup(cdp, join(tmpdir(), `kidstry-backup-${Date.now()}`)));

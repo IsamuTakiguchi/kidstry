@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRng } from '../src/core/random.js';
-import { GAMES } from '../src/games/index.js';
+import { GAMES, LOCKED_GAMES, playableGames } from '../src/games/index.js';
 import { SHAPES } from '../src/core/ui-shapes.js';
+import { WORDS } from '../src/data/words.js';
+import { SEASONS } from '../src/data/seasons.js';
 
 const LEVELS = [1, 2, 3];
 const LAYOUTS = new Set(['grid2', 'grid3', 'grid4']);
@@ -46,7 +48,7 @@ test('メタじょうほうが そろっている', () => {
     assert.match(game.color, /^#[0-9a-f]{6}$/i);
     assert.match(game.icon, /^assets\/icons\/.+\.svg$/);
   }
-  assert.equal(GAMES.length, 9);
+  assert.equal(GAMES.length, 12);
 });
 
 test('かずを かぞえよう：レベルごとの はんい', () => {
@@ -153,6 +155,65 @@ test('レベルが へんな あたいでも おちない', () => {
     for (const level of [0, -3, 9, null, undefined, NaN, '2']) {
       const questions = game.generate(level, createRng(3), 4);
       assert.equal(questions.length, 4, `${game.id}: level=${level} で しっぱい`);
+    }
+  }
+});
+
+test('かぎの かかった あそびは シールを あつめるまで あそべない', () => {
+  assert.equal(LOCKED_GAMES.length, 3);
+  assert.deepEqual(LOCKED_GAMES.map((g) => g.id).sort(), ['odd-one-out', 'seasons', 'shiritori']);
+  assert.equal(playableGames(false).length, GAMES.length - 3);
+  assert.equal(playableGames(true).length, GAMES.length);
+  assert.ok(playableGames(false).every((g) => !g.locked));
+  // メダルは あそびの かず ぶん ある
+  assert.equal(GAMES.length, 12);
+});
+
+test('しりとり：こたえの あたまの もじが もんだいの おわりの もじ', () => {
+  const game = GAMES.find((g) => g.id === 'shiritori');
+  for (const level of LEVELS) {
+    for (const q of game.generate(level, createRng(77), 30)) {
+      const { tail } = q.stage;
+      assert.notEqual(tail, 'ん', '「ん」で おわる ことばを だして いる');
+      const answer = q.choices.find((c) => c.key === q.answer);
+      assert.equal(answer.label[0], tail, `${q.stage.word} → ${answer.label} が つながって いない`);
+      for (const c of q.choices) {
+        if (c.key === q.answer) continue;
+        assert.notEqual(c.label[0], tail, `はずれ「${c.label}」も つながって しまう`);
+      }
+      assert.ok(q.stage.word.includes(tail), 'おわりの もじが ことばに ない');
+    }
+  }
+});
+
+test('なかまはずれ：こたえだけ グループが ちがう', () => {
+  const game = GAMES.find((g) => g.id === 'odd-one-out');
+  for (const level of LEVELS) {
+    for (const q of game.generate(level, createRng(88), 30)) {
+      const groups = q.choices.map((c) => WORDS.find((w) => w.emoji === c.value).group);
+      const answerGroup = groups[q.choices.findIndex((c) => c.key === q.answer)];
+      const others = groups.filter((_, i) => q.choices[i].key !== q.answer);
+      assert.equal(new Set(others).size, 1, 'なかまが そろって いない');
+      assert.notEqual(answerGroup, others[0], 'こたえが なかまに なって いる');
+    }
+  }
+});
+
+test('きせつ：こたえが ただしい きせつの もの', () => {
+  const game = GAMES.find((g) => g.id === 'seasons');
+  const itemSeason = new Map();
+  for (const s of SEASONS) for (const it of s.items) itemSeason.set(it.emoji, s.name);
+  for (const level of LEVELS) {
+    for (const q of game.generate(level, createRng(55), 30)) {
+      const answer = q.choices.find((c) => c.key === q.answer);
+      const m = q.ask.text.match(/^(はる|なつ|あき|ふゆ)の ものは どれ/);
+      if (m) {
+        assert.equal(itemSeason.get(answer.value), m[1], `${answer.value} は ${m[1]} では ない`);
+        const seasonsShown = q.choices.map((c) => itemSeason.get(c.value));
+        assert.equal(new Set(seasonsShown).size, 4, 'きせつが かぶって いる');
+      } else {
+        assert.equal(itemSeason.get(q.stage.emoji), answer.value, 'えらぶ きせつが ちがう');
+      }
     }
   }
 });

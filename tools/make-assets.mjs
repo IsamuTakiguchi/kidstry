@@ -209,6 +209,40 @@ const GAME_ICONS = {
       <g fill="#fff"><rect x="47" y="22" width="4.5" height="11" rx="2.2"/><rect x="54.5" y="19" width="4.5" height="14" rx="2.2"/><rect x="62" y="18" width="4.5" height="15" rx="2.2"/><rect x="69.5" y="19" width="4.5" height="14" rx="2.2"/><rect x="77" y="22" width="4.5" height="11" rx="2.2"/></g>
     </g>
     <g fill="#fff" opacity=".9"><circle cx="99" cy="44" r="9"/><circle cx="112" cy="62" r="6"/><circle cx="97" cy="72" r="4.5"/></g>`),
+  'game-shiritori': tile('#f783ac', `
+    <rect x="10" y="38" width="44" height="52" rx="13" fill="#fff"/>
+    <text x="32" y="74" ${FONT} font-size="30" font-weight="800" fill="#e64980" text-anchor="middle">り</text>
+    <g fill="#fff"><rect x="56" y="60" width="16" height="7" rx="3.5"/><polygon points="70,56 80,63.5 70,71"/></g>
+    <rect x="80" y="38" width="44" height="52" rx="13" fill="#fff"/>
+    <text x="102" y="74" ${FONT} font-size="30" font-weight="800" fill="#e64980" text-anchor="middle">ご</text>`),
+  'game-odd-one-out': tile('#9775fa', `
+    <g fill="#fff" opacity=".62">
+      <circle cx="40" cy="42" r="17"/><circle cx="88" cy="42" r="17"/><circle cx="40" cy="90" r="17"/>
+    </g>
+    <rect x="70" y="72" width="36" height="36" rx="9" fill="#fff" transform="rotate(12 88 90)"/>`),
+  'game-seasons': tile('#69db7c', `
+    <g fill="#fff">
+      <g transform="translate(38 40)">
+        <circle cx="0" cy="-13" r="7"/><circle cx="12" cy="-4" r="7"/><circle cx="8" cy="11" r="7"/>
+        <circle cx="-8" cy="11" r="7"/><circle cx="-12" cy="-4" r="7"/>
+      </g>
+      <g transform="translate(90 40)">
+        <circle cx="0" cy="0" r="12"/>
+        <g stroke="#fff" stroke-width="4.5" stroke-linecap="round">
+          <line x1="0" y1="-21" x2="0" y2="-17"/><line x1="0" y1="17" x2="0" y2="21"/>
+          <line x1="-21" y1="0" x2="-17" y2="0"/><line x1="17" y1="0" x2="21" y2="0"/>
+          <line x1="-15" y1="-15" x2="-12" y2="-12"/><line x1="12" y1="12" x2="15" y2="15"/>
+          <line x1="15" y1="-15" x2="12" y2="-12"/><line x1="-12" y1="12" x2="-15" y2="15"/>
+        </g>
+      </g>
+      <path d="M38 74c16 0 24 10 24 22-16 2-26-6-24-22z"/>
+      <path d="M38 96c6-8 14-14 22-17" fill="none" stroke="#69db7c" stroke-width="3" stroke-linecap="round"/>
+      <g transform="translate(90 90)" stroke="#fff" stroke-width="5" stroke-linecap="round">
+        <line x1="0" y1="-18" x2="0" y2="18"/>
+        <line x1="-15.6" y1="-9" x2="15.6" y2="9"/>
+        <line x1="-15.6" y1="9" x2="15.6" y2="-9"/>
+      </g>
+    </g>`),
 };
 
 // ---- しゅつりょく ----------------------------------------------------------

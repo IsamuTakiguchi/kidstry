@@ -175,6 +175,7 @@
     flex: 1 1 auto;
   }
   .sticker-grid { grid-template-columns: repeat(4, 1fr); }
+  .medal-grid { grid-template-columns: repeat(3, 1fr); }
   .choices.grid4 { grid-template-columns: repeat(2, 1fr); }
   .mascot-quiz { width: 42px; }
   .screen { height: auto; min-height: 100dvh; }
@@ -184,5 +185,17 @@
 @media (max-width: 430px) {
   .home-actions { width: 100%; margin-left: 0; }
   .sticker-grid { grid-template-columns: repeat(3, 1fr); }
+  .medal-grid { grid-template-columns: repeat(2, 1fr); }
   .bar-row { grid-template-columns: 72px 1fr 42px; }
 }
+
+/* ---- しりとりの もんだい ---- */
+.stage-chain { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.stage-word .tail {
+  color: var(--accent);
+  background: #fff3d6;
+  border-radius: 10px;
+  padding: 0 6px;
+}
+.chain-hint { font-size: clamp(13px, 2.1vh, 19px); font-weight: 700; color: var(--ink-soft); }
+.chain-hint .tail { padding: 0 5px; }

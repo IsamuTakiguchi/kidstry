@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img">
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="#f783ac"/>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="#fff" opacity=".18"/>
+  
+    <rect x="10" y="38" width="44" height="52" rx="13" fill="#fff"/>
+    <text x="32" y="74" font-family="'Hiragino Maru Gothic ProN','Hiragino Sans','Noto Sans JP',system-ui,sans-serif" font-size="30" font-weight="800" fill="#e64980" text-anchor="middle">り</text>
+    <g fill="#fff"><rect x="56" y="60" width="16" height="7" rx="3.5"/><polygon points="70,56 80,63.5 70,71"/></g>
+    <rect x="80" y="38" width="44" height="52" rx="13" fill="#fff"/>
+    <text x="102" y="74" font-family="'Hiragino Maru Gothic ProN','Hiragino Sans','Noto Sans JP',system-ui,sans-serif" font-size="30" font-weight="800" fill="#e64980" text-anchor="middle">ご</text>
+</svg>

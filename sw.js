@@ -1,5 +1,5 @@
 // オフラインでも あそべる ように アプリを キャッシュする
-const CACHE = 'kidstry-v1';
+const CACHE = 'kidstry-v2';
 const ASSETS = [
   './',
   'index.html',
@@ -15,12 +15,16 @@ const ASSETS = [
   'src/core/ui.js',
   'src/core/ui-shapes.js',
   'src/data/english.js',
+  'src/data/seasons.js',
   'src/data/hiragana.js',
   'src/data/stickers.js',
   'src/data/words.js',
   'src/games/index.js',
   'src/games/_helpers.js',
   'src/games/addition.js',
+  'src/games/odd-one-out.js',
+  'src/games/seasons.js',
+  'src/games/shiritori.js',
   'src/games/clock.js',
   'src/games/counting.js',
   'src/games/english.js',
@@ -40,7 +44,10 @@ const ASSETS = [
   'assets/icons/game-counting.svg',
   'assets/icons/game-english.svg',
   'assets/icons/game-hiragana-find.svg',
+  'assets/icons/game-odd-one-out.svg',
   'assets/icons/game-pattern.svg',
+  'assets/icons/game-seasons.svg',
+  'assets/icons/game-shiritori.svg',
   'assets/icons/game-seikatsu.svg',
   'assets/icons/game-shapes.svg',
   'assets/icons/game-word-start.svg',

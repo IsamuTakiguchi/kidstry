@@ -4,6 +4,7 @@ import {
   defaultState, starsFor, nextStreak, recordSession, awardSticker,
   accuracy, domainStats, totalPlays, migrate, createStore, todayKey, STORAGE_KEY,
   exportPayload, parseBackup, backupFileName,
+  stickerBookComplete, stickersLeft, hasMedal, medalCount, sessionRewards, STICKER_GOAL,
 } from '../src/core/state.js';
 import { STICKERS } from '../src/data/stickers.js';
 import { GAMES } from '../src/games/index.js';
@@ -194,4 +195,51 @@ test('バックアップ：あたらしい きろくを よみこんでも 2ど�
   const second = parseBackup(JSON.stringify(exportPayload(first))).state;
   assert.deepEqual(second, first, 'よみこむ たびに きろくが かわる');
   assert.equal(second.games.clock.plays, 1);
+});
+
+test('シールを ぜんぶ あつめると あたらしい あそびが ふえる', () => {
+  const empty = defaultState();
+  assert.equal(STICKER_GOAL, STICKERS.length);
+  assert.equal(stickerBookComplete(empty), false);
+  assert.equal(stickersLeft(empty), STICKER_GOAL);
+
+  const almost = { ...empty, stickers: STICKERS.slice(0, STICKER_GOAL - 1).map((s) => s.id) };
+  assert.equal(stickerBookComplete(almost), false);
+  assert.equal(stickersLeft(almost), 1);
+
+  const done = { ...empty, stickers: STICKERS.map((s) => s.id) };
+  assert.equal(stickerBookComplete(done), true);
+  assert.equal(stickersLeft(done), 0);
+});
+
+test('きんメダルは ★3で もらえる（ほぞん せず きろくから みちびく）', () => {
+  let s = defaultState();
+  assert.equal(hasMedal(s, 'clock'), false);
+  assert.equal(medalCount(s, GAMES), 0);
+
+  s = recordSession(s, { gameId: 'clock', firstTryCorrect: 8, questions: 10, today: '2026-09-12' });
+  assert.equal(hasMedal(s, 'clock'), false, '★2では もらえない');
+
+  s = recordSession(s, { gameId: 'clock', firstTryCorrect: 10, questions: 10, today: '2026-09-12' });
+  assert.equal(hasMedal(s, 'clock'), true);
+  assert.equal(medalCount(s, GAMES), 1);
+
+  s = recordSession(s, { gameId: 'clock', firstTryCorrect: 1, questions: 10, today: '2026-09-12' });
+  assert.equal(hasMedal(s, 'clock'), true, 'いちど とった メダルは なくならない');
+
+  assert.equal(medalCount(s, GAMES) <= GAMES.length, true);
+});
+
+test('ごほうびの はんてい：1どだけ おいわいする', () => {
+  const base = defaultState();
+  const withMedal = recordSession(base, { gameId: 'clock', firstTryCorrect: 10, questions: 10, today: '2026-09-12' });
+  assert.deepEqual(sessionRewards(base, withMedal, 'clock'), { newMedal: true, justUnlocked: false });
+
+  const again = recordSession(withMedal, { gameId: 'clock', firstTryCorrect: 10, questions: 10, today: '2026-09-12' });
+  assert.deepEqual(sessionRewards(withMedal, again, 'clock'), { newMedal: false, justUnlocked: false }, '2どめは おいわい しない');
+
+  const almost = { ...base, stickers: STICKERS.slice(0, STICKER_GOAL - 1).map((s) => s.id) };
+  const complete = awardSticker(almost, () => 0).state;
+  assert.deepEqual(sessionRewards(almost, complete, 'counting'), { newMedal: false, justUnlocked: true });
+  assert.deepEqual(sessionRewards(complete, complete, 'counting'), { newMedal: false, justUnlocked: false });
 });
