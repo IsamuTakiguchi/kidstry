@@ -5,9 +5,10 @@ import { GAMES, LOCKED_GAMES, playableGames } from '../src/games/index.js';
 import { SHAPES } from '../src/core/ui-shapes.js';
 import { WORDS } from '../src/data/words.js';
 import { SEASONS } from '../src/data/seasons.js';
+import { WEEKDAYS, shiftDay } from '../src/data/weekdays.js';
 
 const LEVELS = [1, 2, 3];
-const LAYOUTS = new Set(['grid2', 'grid3', 'grid4']);
+const LAYOUTS = new Set(['grid2', 'grid3', 'grid4', 'grid5']);
 
 function valueOf(choice) {
   return typeof choice.value === 'object' ? JSON.stringify(choice.value) : String(choice.value);
@@ -48,7 +49,7 @@ test('メタじょうほうが そろっている', () => {
     assert.match(game.color, /^#[0-9a-f]{6}$/i);
     assert.match(game.icon, /^assets\/icons\/.+\.svg$/);
   }
-  assert.equal(GAMES.length, 12);
+  assert.equal(GAMES.length, 14);
 });
 
 test('かずを かぞえよう：レベルごとの はんい', () => {
@@ -166,7 +167,7 @@ test('かぎの かかった あそびは シールを あつめるまで あそ
   assert.equal(playableGames(true).length, GAMES.length);
   assert.ok(playableGames(false).every((g) => !g.locked));
   // メダルは あそびの かず ぶん ある
-  assert.equal(GAMES.length, 12);
+  assert.equal(GAMES.length, 14);
 });
 
 test('しりとり：こたえの あたまの もじが もんだいの おわりの もじ', () => {
@@ -215,5 +216,66 @@ test('きせつ：こたえが ただしい きせつの もの', () => {
         assert.equal(itemSeason.get(q.stage.emoji), answer.value, 'えらぶ きせつが ちがう');
       }
     }
+  }
+});
+
+test('ようび：こたえが ただしい ようび（しゅうを またいでも）', () => {
+  const game = GAMES.find((g) => g.id === 'weekday');
+  const names = WEEKDAYS.map((d) => d.name);
+  const seenOffsets = new Set();
+  let wrapped = 0;
+  for (const level of LEVELS) {
+    for (const q of game.generate(level, createRng(101), 40)) {
+      const { knownIndex, askIndex } = q.stage;
+      const known = WEEKDAYS[knownIndex];
+      assert.ok(q.ask.text.startsWith(known.name), `といが ${known.name} から はじまって いない`);
+
+      const offset = q.ask.text.includes('つぎ') ? 1 : q.ask.text.includes('まえ') ? -1 : 2;
+      seenOffsets.add(offset);
+      if (level === 1) assert.equal(offset, 1, 'レベル1に つぎ いがいが でた');
+      if (level === 2) assert.ok(offset === 1 || offset === -1, 'レベル2に 2にち あとが でた');
+
+      const expected = shiftDay(knownIndex, offset);
+      assert.equal(askIndex, WEEKDAYS.indexOf(expected), 'おびの ？の いちが ちがう');
+      assert.notEqual(askIndex, knownIndex, 'こたえる いちが わかって いる いちと おなじ');
+
+      const answer = q.choices.find((c) => c.key === q.answer);
+      assert.equal(answer.value, expected.name, `${known.name} の ${offset} は ${expected.name}`);
+      for (const c of q.choices) assert.ok(names.includes(c.value), `${c.value} は ようびで ない`);
+
+      if ((knownIndex + offset) < 0 || (knownIndex + offset) >= WEEKDAYS.length) wrapped += 1;
+    }
+  }
+  assert.deepEqual([...seenOffsets].sort((a, b) => a - b), [-1, 1, 2], 'ぜんぶの ききかたが でて いない');
+  assert.ok(wrapped > 0, 'しゅうを またぐ もんだいが 1つも でて いない');
+});
+
+test('みぎひだり：ばんめと ならびの いちが あっている', () => {
+  const game = GAMES.find((g) => g.id === 'left-right');
+  for (const level of LEVELS) {
+    const expectedSize = level === 3 ? 5 : 4;
+    const seen = new Set();
+    for (const q of game.generate(level, createRng(202), 40)) {
+      const size = q.choices.length;
+      assert.equal(size, expectedSize, `レベル${level} は ${expectedSize}つ ならび のはず`);
+      assert.equal(q.layout, size === 5 ? 'grid5' : 'grid4');
+
+      // ならびは シャッフル しない（c0, c1, ... の じゅんばんが がめんの ならび）
+      assert.deepEqual(q.choices.map((c) => c.key), q.choices.map((_, i) => `c${i}`));
+
+      const answerIndex = q.choices.findIndex((c) => c.key === q.answer);
+      const fromRight = q.ask.text.includes('みぎ');
+      const m = q.ask.text.match(/(\d+)ばんめ/);
+      const ordinal = m ? Number(m[1]) : 1;
+      seen.add(`${fromRight ? 'R' : 'L'}${ordinal}`);
+      assert.ok(ordinal >= 1 && ordinal <= size, `${ordinal}ばんめは はんい がい`);
+      if (level === 1) assert.equal(ordinal, 1, 'レベル1は いちばん はし だけ');
+
+      const expectedIndex = fromRight ? size - ordinal : ordinal - 1;
+      assert.equal(answerIndex, expectedIndex,
+        `「${q.ask.text}」の こたえは ${expectedIndex}ばんめ（0はじまり）のはず`);
+    }
+    assert.ok([...seen].some((k) => k.startsWith('R')), 'みぎからの もんだいが ない');
+    assert.ok([...seen].some((k) => k.startsWith('L')), 'ひだりからの もんだいが ない');
   }
 });

@@ -133,6 +133,11 @@
 
 .choice-text .choice-text,
 .choice-text span { font-size: clamp(38px, 10vh, 88px); font-weight: 800; }
+/* ながい ことばは おりかえさずに おさまる おおきさに */
+.choice-text span.len-m { font-size: clamp(26px, 6vh, 52px); }
+.choice-text span.len-l { font-size: clamp(22px, 5vh, 44px); }
+.choice-text span.len-xl { font-size: clamp(19px, 4.2vh, 38px); letter-spacing: -.01em; }
+.choice-text span[class*="len-"] { line-height: 1.2; text-align: center; }
 .choice-number .choice-number { font-size: clamp(38px, 10vh, 88px); font-weight: 800; }
 .choice-emoji .choice-emoji { font-size: clamp(32px, 8vh, 72px); line-height: 1.05; }
 .choice-label { font-size: clamp(11px, 1.8vh, 16px); font-weight: 700; color: var(--ink-soft); text-align: center; line-height: 1.2; }
@@ -177,6 +182,8 @@
   .sticker-grid { grid-template-columns: repeat(4, 1fr); }
   .medal-grid { grid-template-columns: repeat(3, 1fr); }
   .choices.grid4 { grid-template-columns: repeat(2, 1fr); }
+  .week-cell { min-height: 40px; border-radius: 12px; }
+  .dir-side { font-size: 14px; }
   .mascot-quiz { width: 42px; }
   .screen { height: auto; min-height: 100dvh; }
   .screen-quiz, .screen-home { height: 100dvh; }
@@ -199,3 +206,65 @@
 }
 .chain-hint { font-size: clamp(13px, 2.1vh, 19px); font-weight: 700; color: var(--ink-soft); }
 .chain-hint .tail { padding: 0 5px; }
+
+/* ---- ようびの おび ---- */
+.stage-week { display: flex; flex-direction: column; align-items: center; gap: clamp(6px, 1.4vh, 14px); width: 100%; }
+
+.week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: clamp(4px, 1vw, 10px);
+  width: min(100%, 760px);
+}
+
+.week-cell {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-height: clamp(38px, 9vh, 82px);
+  border-radius: 16px;
+  border: 3px dashed #dbe5ee;
+  background: #fbfdff;
+  font-size: clamp(14px, 3vh, 26px);
+  font-weight: 800;
+  color: var(--ink);
+}
+.week-cell.is-known {
+  border: none;
+  background: var(--day-color);
+  box-shadow: 0 4px 0 rgba(45, 90, 130, .16);
+}
+.week-cell.is-ask {
+  border-style: solid;
+  border-color: var(--accent);
+  background: #fff6e2;
+  color: var(--accent);
+  animation: pop .4s ease;
+}
+.week-hint { font-size: clamp(11px, 1.8vh, 15px); color: var(--ink-soft); }
+
+/* ---- みぎ・ひだりの おび ---- */
+.stage.kind-direction {
+  flex: 0 0 auto;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+}
+.stage.kind-week { flex: 0 0 auto; }
+.dir-band {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 clamp(4px, 1.5vw, 18px);
+}
+.dir-side {
+  font-size: clamp(15px, 2.6vh, 24px);
+  font-weight: 800;
+  color: var(--ink-soft);
+  background: #fff;
+  border-radius: 999px;
+  padding: clamp(4px, 1vh, 10px) clamp(12px, 2vw, 22px);
+  box-shadow: 0 4px 0 rgba(45, 90, 130, .1);
+}
+
+.choices.grid5 { grid-template-columns: repeat(5, 1fr); }

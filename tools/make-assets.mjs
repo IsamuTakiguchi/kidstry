@@ -209,6 +209,27 @@ const GAME_ICONS = {
       <g fill="#fff"><rect x="47" y="22" width="4.5" height="11" rx="2.2"/><rect x="54.5" y="19" width="4.5" height="14" rx="2.2"/><rect x="62" y="18" width="4.5" height="15" rx="2.2"/><rect x="69.5" y="19" width="4.5" height="14" rx="2.2"/><rect x="77" y="22" width="4.5" height="11" rx="2.2"/></g>
     </g>
     <g fill="#fff" opacity=".9"><circle cx="99" cy="44" r="9"/><circle cx="112" cy="62" r="6"/><circle cx="97" cy="72" r="4.5"/></g>`),
+  'game-weekday': tile('#74c0fc', `
+    <rect x="14" y="26" width="100" height="80" rx="16" fill="#fff"/>
+    <rect x="14" y="26" width="100" height="22" rx="11" fill="#4dabf7"/>
+    <g fill="#fff"><rect x="34" y="18" width="9" height="18" rx="4.5"/><rect x="85" y="18" width="9" height="18" rx="4.5"/></g>
+    <g fill="#d0e7fb">
+      <rect x="24" y="58" width="15" height="15" rx="5"/><rect x="44" y="58" width="15" height="15" rx="5"/>
+      <rect x="64" y="58" width="15" height="15" rx="5"/><rect x="84" y="58" width="15" height="15" rx="5"/>
+      <rect x="24" y="80" width="15" height="15" rx="5"/><rect x="64" y="80" width="15" height="15" rx="5"/>
+      <rect x="84" y="80" width="15" height="15" rx="5"/>
+    </g>
+    <rect x="44" y="80" width="15" height="15" rx="5" fill="#ff922b"/>`),
+  'game-left-right': tile('#ffa94d', `
+    <g fill="#fff" opacity=".55">
+      <rect x="20" y="57" width="30" height="14" rx="7"/>
+      <polygon points="26,44 12,64 26,84"/>
+    </g>
+    <g fill="#fff">
+      <rect x="78" y="57" width="30" height="14" rx="7"/>
+      <polygon points="102,44 116,64 102,84"/>
+    </g>
+    <circle cx="64" cy="64" r="8" fill="#fff"/>`),
   'game-shiritori': tile('#f783ac', `
     <rect x="10" y="38" width="44" height="52" rx="13" fill="#fff"/>
     <text x="32" y="74" ${FONT} font-size="30" font-weight="800" fill="#e64980" text-anchor="middle">り</text>

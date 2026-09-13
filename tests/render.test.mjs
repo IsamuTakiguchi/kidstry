@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { renderStage, renderChoiceInner } from '../src/core/quiz.js';
+import { renderStage, renderChoiceInner, lengthClass } from '../src/core/quiz.js';
 import { clockSvg, clockLabel, emojiGroupHtml, starsHtml, formatDuration, MASCOT_POSES } from '../src/core/ui.js';
 
 test('もんだいの え を HTML に できる', () => {
@@ -22,6 +22,27 @@ test('もんだいの え を HTML に できる', () => {
 
   const seq = renderStage({ kind: 'sequence', items: ['🔴', '🔵', '🔴'] });
   assert.equal((seq.match(/seq-item/g) || []).length, 4, 'さいごの ？が ない');
+
+  const week = renderStage({ kind: 'week', knownIndex: 1, askIndex: 2 });
+  assert.equal((week.match(/week-cell/g) || []).length, 7, 'おびが 7マス でない');
+  assert.equal((week.match(/is-known/g) || []).length, 1);
+  assert.equal((week.match(/is-ask/g) || []).length, 1);
+  assert.ok(week.includes('げつ'), 'わかって いる ようびが でて いない');
+  assert.ok(!week.includes('>か<'), 'こたえの ようびが みえて しまって いる');
+
+  const dir = renderStage({ kind: 'direction' });
+  assert.ok(dir.includes('ひだり') && dir.includes('みぎ'));
+});
+
+test('ながい ことばの せんたくしは もじを ちいさく する', () => {
+  assert.equal(lengthClass('あ'), '');
+  assert.equal(lengthClass('3じ'), '');
+  assert.equal(lengthClass('10じ'), 'len-m');
+  assert.equal(lengthClass('3じはん'), 'len-l');
+  assert.equal(lengthClass('もくようび'), 'len-xl');
+  assert.equal(lengthClass('12じはん'), 'len-xl');
+  assert.ok(renderChoiceInner({ kind: 'text', value: 'にちようび' }).includes('len-xl'));
+  assert.ok(!renderChoiceInner({ kind: 'text', value: 'あ' }).includes('len-'));
 });
 
 test('せんたくしを HTML に できる', () => {

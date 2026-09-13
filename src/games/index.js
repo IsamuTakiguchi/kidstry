@@ -7,12 +7,14 @@ import * as shapes from './shapes.js';
 import * as english from './english.js';
 import * as pattern from './pattern.js';
 import * as seikatsu from './seikatsu.js';
+import * as weekday from './weekday.js';
+import * as leftRight from './left-right.js';
 import * as shiritori from './shiritori.js';
 import * as oddOneOut from './odd-one-out.js';
 import * as seasons from './seasons.js';
 
 export const GAME_MODULES = [
-  hiraganaFind, wordStart, counting, addition, clock, shapes, english, pattern, seikatsu,
+  hiraganaFind, wordStart, counting, addition, clock, weekday, shapes, leftRight, english, pattern, seikatsu,
   shiritori, oddOneOut, seasons,
 ];
 

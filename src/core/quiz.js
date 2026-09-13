@@ -2,8 +2,12 @@
 import { h, clear, wait, clockSvg, emojiGroupHtml, shapeSvg, mascotImg, mascotSrc } from './ui.js';
 import { sfx, speak, cancelSpeech } from './audio.js';
 import { QUESTIONS_PER_SESSION } from './state.js';
+import { WEEKDAYS } from '../data/weekdays.js';
 
 const FEEDBACK_MS = 850;
+
+/** たかさを とらない もんだいの え（せんたくしを おおきく みせる） */
+export const COMPACT_STAGES = new Set(['direction', 'week']);
 
 export function renderStage(stage) {
   switch (stage.kind) {
@@ -39,6 +43,23 @@ export function renderStage(stage) {
       return `<div class="stage-seq">${stage.items
         .map((it) => `<span class="seq-item">${it}</span>`)
         .join('')}<span class="seq-item seq-q">？</span></div>`;
+    case 'week': {
+      // わかって いる ようびだけ みせる。ほかを ふせて、ならびで かんがえさせる
+      const cells = WEEKDAYS.map((day, i) => {
+        if (i === stage.knownIndex) {
+          return `<span class="week-cell is-known" style="--day-color:${day.color}">${day.short}</span>`;
+        }
+        if (i === stage.askIndex) return '<span class="week-cell is-ask">？</span>';
+        return '<span class="week-cell"></span>';
+      }).join('');
+      return `<div class="stage-week"><div class="week-strip">${cells}</div>
+        <p class="week-hint">にちようび から はじまる 1しゅうかん</p></div>`;
+    }
+    case 'direction':
+      return `<div class="dir-band">
+          <span class="dir-side">← ひだり</span>
+          <span class="dir-side">みぎ →</span>
+        </div>`;
     default:
       return '';
   }
@@ -54,9 +75,21 @@ export function renderChoiceInner(choice) {
       }`;
     case 'number':
       return `<span class="choice-number">${choice.value}</span>`;
-    default:
-      return `<span class="choice-text">${choice.value}</span>`;
+    default: {
+      // 「もくようび」の ような ながい ことばは もじを ちいさく して おりかえさない
+      const text = String(choice.value);
+      return `<span class="choice-text ${lengthClass(text)}">${text}</span>`;
+    }
   }
+}
+
+/** もじすうに あわせた おおきさの クラス */
+export function lengthClass(text) {
+  const n = [...text].length;
+  if (n >= 5) return 'len-xl';
+  if (n === 4) return 'len-l';
+  if (n === 3) return 'len-m';
+  return '';
 }
 
 /**
@@ -130,9 +163,12 @@ export function startQuiz({ root, game, level, onExit, onFinish, count = QUESTIO
     askSub.textContent = q.ask.sub || '';
     askSub.hidden = !q.ask.sub;
     const hasStage = q.stage.kind !== 'none';
+    // せの ひくい もんだい（むきの おび・ようびの おび）は せんたくしを おおきく つかう
+    const compactStage = !hasStage || COMPACT_STAGES.has(q.stage.kind);
     stage.innerHTML = renderStage(q.stage);
     stage.hidden = !hasStage;
-    quizMain.className = `quiz-main ${hasStage ? '' : 'no-stage'}`;
+    stage.className = `stage kind-${q.stage.kind}`;
+    quizMain.className = `quiz-main ${compactStage ? 'no-stage' : ''}`;
     mascot.src = mascotSrc('normal');
     clear(choicesEl);
     choicesEl.className = `choices ${q.layout || 'grid4'}`;

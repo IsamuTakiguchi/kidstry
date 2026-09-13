@@ -370,6 +370,24 @@ async function run() {
     await sleep(500);
     await cdp.shot('08-clock');
 
+    // ようびの おびと、みぎ・ひだりの おびが えがかれて いるか
+    await cdp.eval("window.__kidstry.goQuiz('weekday')");
+    await waitFor(() => cdp.eval("!!document.querySelector('.week-strip')"), { label: 'ようびの おび' });
+    const weekCells = await cdp.eval("document.querySelectorAll('.week-cell').length");
+    if (weekCells !== 7) failures.push(`ようびの おびが ${weekCells}マス（7マス のはず）`);
+    if (await cdp.eval("document.querySelectorAll('.week-cell.is-ask').length") !== 1) {
+      failures.push('ようびの おびに ？が 1つ ない');
+    }
+    await sleep(400);
+    await cdp.shot('17-weekday');
+
+    await cdp.eval("window.__kidstry.goQuiz('left-right')");
+    await waitFor(() => cdp.eval("!!document.querySelector('.dir-band')"), { label: 'みぎ・ひだりの おび' });
+    const dirText = await cdp.eval("document.querySelector('.dir-band').textContent");
+    if (!dirText.includes('ひだり') || !dirText.includes('みぎ')) failures.push('むきの おびの もじが たりない');
+    await sleep(400);
+    await cdp.shot('18-left-right');
+
     const saved = await cdp.eval("JSON.parse(localStorage.getItem('kidstry:v1')).games['hiragana-find'].plays");
     if (!saved) failures.push('きろくが ほぞん されて いない');
 

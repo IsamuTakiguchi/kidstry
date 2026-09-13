@@ -1,5 +1,5 @@
 // オフラインでも あそべる ように アプリを キャッシュする
-const CACHE = 'kidstry-v2';
+const CACHE = 'kidstry-v3';
 const ASSETS = [
   './',
   'index.html',
@@ -18,6 +18,7 @@ const ASSETS = [
   'src/data/seasons.js',
   'src/data/hiragana.js',
   'src/data/stickers.js',
+  'src/data/weekdays.js',
   'src/data/words.js',
   'src/games/index.js',
   'src/games/_helpers.js',
@@ -29,9 +30,11 @@ const ASSETS = [
   'src/games/counting.js',
   'src/games/english.js',
   'src/games/hiragana-find.js',
+  'src/games/left-right.js',
   'src/games/pattern.js',
   'src/games/seikatsu.js',
   'src/games/shapes.js',
+  'src/games/weekday.js',
   'src/games/word-start.js',
   'src/screens/home.js',
   'src/screens/parent.js',
@@ -44,12 +47,14 @@ const ASSETS = [
   'assets/icons/game-counting.svg',
   'assets/icons/game-english.svg',
   'assets/icons/game-hiragana-find.svg',
+  'assets/icons/game-left-right.svg',
   'assets/icons/game-odd-one-out.svg',
   'assets/icons/game-pattern.svg',
   'assets/icons/game-seasons.svg',
   'assets/icons/game-shiritori.svg',
   'assets/icons/game-seikatsu.svg',
   'assets/icons/game-shapes.svg',
+  'assets/icons/game-weekday.svg',
   'assets/icons/game-word-start.svg',
   'assets/characters/mascot-normal.svg',
   'assets/characters/mascot-happy.svg',

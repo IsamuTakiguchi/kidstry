@@ -110,3 +110,26 @@ test('レベルは 1〜3 に そろえる', () => {
   assert.equal(clampLevel(undefined), 1);
   assert.equal(clampLevel(NaN), 1);
 });
+
+test('ようびの データ', async () => {
+  const { WEEKDAYS, WEEK_LENGTH, shiftDay } = await import('../src/data/weekdays.js');
+  assert.equal(WEEK_LENGTH, 7);
+  assert.equal(WEEKDAYS.length, 7);
+  assert.equal(WEEKDAYS[0].name, 'にちようび', 'にちようび から はじまる');
+  assert.equal(new Set(WEEKDAYS.map((d) => d.name)).size, 7);
+  assert.equal(new Set(WEEKDAYS.map((d) => d.short)).size, 7);
+  for (const d of WEEKDAYS) {
+    assert.ok(d.name.endsWith('ようび'), `${d.name} が ようびで おわって いない`);
+    assert.match(d.color, /^#[0-9a-f]{6}$/i);
+  }
+
+  // 1しゅうかんで ぐるっと まわる
+  for (let i = 0; i < 7; i++) {
+    assert.equal(shiftDay(i, 0).name, WEEKDAYS[i].name);
+    assert.equal(shiftDay(i, 7).name, WEEKDAYS[i].name, '7にち あとは おなじ ようび');
+    assert.equal(shiftDay(i, -7).name, WEEKDAYS[i].name, '7にち まえも おなじ ようび');
+  }
+  assert.equal(shiftDay(6, 1).name, 'にちようび', 'どようびの つぎは にちようび');
+  assert.equal(shiftDay(0, -1).name, 'どようび', 'にちようびの まえは どようび');
+  assert.equal(shiftDay(5, 2).name, 'にちようび', 'きんようびの 2にち あとは にちようび');
+});
