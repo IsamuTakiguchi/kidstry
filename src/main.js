@@ -1,4 +1,4 @@
-import { h, clear } from './core/ui.js';
+import { h, clear, showModal } from './core/ui.js';
 import {
   createStore, recordSession, awardSticker, starsFor,
   stickerBookComplete, sessionRewards, hasSeenLesson, markLessonSeen,
@@ -104,27 +104,69 @@ function goQuiz(gameId, { skipLesson = false } = {}) {
   });
 }
 
+/**
+ * 10もん おわった ところ。
+ * ここで きろく まで すませて から、ふくしゅうを するか たずねる。
+ * （ふくしゅうちゅうに ホームへ もどられても、その かいの きろくが きえない ように）
+ */
 function finishQuiz(game, result) {
   cleanup();
   const before = store.get();
-  const stars = starsFor(result.firstTryCorrect, result.questions);
   let next = recordSession(before, result);
   const awarded = awardSticker(next);
   next = awarded.state;
   store.set(next);
 
-  // 「はじめての きんメダル」と「シール ぜんぶ あつめた」を みつける
   const { newMedal, justUnlocked } = sessionRewards(before, next, game.id);
-
-  renderResult({
-    root,
-    game,
-    stars,
+  const rewards = {
+    stars: starsFor(result.firstTryCorrect, result.questions),
     firstTryCorrect: result.firstTryCorrect,
     questions: result.questions,
     sticker: awarded.sticker,
     newMedal,
     unlockedGames: justUnlocked ? LOCKED_GAMES : null,
+  };
+
+  const missed = result.missedQuestions || [];
+  if (missed.length === 0) return showResult(game, rewards, 0);
+  askReview(game, missed, rewards);
+}
+
+/** 「まちがえた ○もんを もういちど？」と たずねる */
+function askReview(game, missed, rewards) {
+  showModal({
+    title: '⭐ まちがえた もんだいが あるよ',
+    lines: [
+      `${missed.length}もん を もういちど やって みる？`,
+      'ほしの かずは かわらないから、あんしんして ちょうせん してね。',
+    ],
+    okLabel: `▶ ${missed.length}もん やる`,
+    cancelLabel: 'けっかを みる',
+    onOk: () => startReview(game, missed, rewards),
+    onCancel: () => showResult(game, rewards, 0),
+  });
+}
+
+/** ふくしゅう ラウンド。きろくは もう すんで いるので ここでは つけない */
+function startReview(game, missed, rewards) {
+  cleanup();
+  dispose = startQuiz({
+    root,
+    game,
+    level: store.get().profile.level,
+    reviewOf: missed,
+    onExit: goHome,
+    onFinish: (r) => showResult(game, rewards, r.questions),
+  });
+}
+
+function showResult(game, rewards, reviewed) {
+  cleanup();
+  renderResult({
+    root,
+    game,
+    ...rewards,
+    reviewed,
     onRetry: () => goQuiz(game.id, { skipLesson: true }),
     onHome: goHome,
     onStickers: goStickers,

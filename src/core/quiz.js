@@ -2,6 +2,7 @@
 import { h, clear, wait, clockSvg, emojiGroupHtml, shapeSvg, mascotImg, mascotSrc } from './ui.js';
 import { sfx, speak, cancelSpeech } from './audio.js';
 import { QUESTIONS_PER_SESSION } from './state.js';
+import { shuffle } from './random.js';
 import { WEEKDAYS } from '../data/weekdays.js';
 
 const FEEDBACK_MS = 850;
@@ -93,14 +94,30 @@ export function lengthClass(text) {
 }
 
 /**
+ * まちがえた もんだいだけを とりだし、せんたくしの ならびだけを かえる。
+ * もんだいぶんも こたえも かえない（いちで おぼえて しまうのを ふせぐ ため）。
+ */
+export function buildReviewQuestions(questions, missedIds, rng = Math.random) {
+  const missed = new Set(missedIds);
+  return questions
+    .filter((q) => missed.has(q.id))
+    .map((q) => ({ ...q, choices: shuffle(rng, q.choices) }));
+}
+
+/**
  * クイズを はじめる。かえり値は かたづけ かんすう。
  */
-export function startQuiz({ root, game, level, onExit, onFinish, onLesson = null, count = QUESTIONS_PER_SESSION }) {
-  const questions = game.generate(level, Math.random, count);
+export function startQuiz({
+  root, game, level, onExit, onFinish, onLesson = null,
+  reviewOf = null, count = QUESTIONS_PER_SESSION,
+}) {
+  const isReview = Array.isArray(reviewOf) && reviewOf.length > 0;
+  const questions = isReview ? reviewOf : game.generate(level, Math.random, count);
   const startedAt = Date.now();
   let index = 0;
   let firstTryCorrect = 0;
   let missedThisQuestion = false;
+  const missedIds = [];
   let locked = false;
   let disposed = false;
 
@@ -133,8 +150,14 @@ export function startQuiz({ root, game, level, onExit, onFinish, onLesson = null
         onclick: () => { cancelSpeech(); onExit(); },
       }, '🏠'),
       mascot,
-      h('div', { class: 'quiz-title' }, h('span', { class: 'quiz-title-text' }, game.title), progress),
-      onLesson && h('button', {
+      h(
+        'div',
+        { class: 'quiz-title' },
+        h('span', { class: 'quiz-title-text' }, isReview ? `${game.title}（ふくしゅう）` : game.title),
+        progress,
+      ),
+      isReview && h('span', { class: 'chip chip-review' }, '⭐ ふくしゅう'),
+      !isReview && onLesson && h('button', {
         class: 'icon-btn lesson-btn',
         type: 'button',
         'aria-label': 'おしえてを みる',
@@ -216,6 +239,7 @@ export function startQuiz({ root, game, level, onExit, onFinish, onLesson = null
         renderQuestion();
       }
     } else {
+      if (!missedThisQuestion && !missedIds.includes(q.id)) missedIds.push(q.id);
       missedThisQuestion = true;
       btn.classList.add('is-wrong');
       btn.disabled = true;
@@ -240,6 +264,9 @@ export function startQuiz({ root, game, level, onExit, onFinish, onLesson = null
       firstTryCorrect,
       questions: questions.length,
       durationMs: Date.now() - startedAt,
+      isReview,
+      // ふくしゅう用：まちがえた もんだいを、でた じゅんばんの まま かえす
+      missedQuestions: isReview ? [] : buildReviewQuestions(questions, missedIds),
     });
   }
 

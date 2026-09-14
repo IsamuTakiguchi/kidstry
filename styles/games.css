@@ -268,3 +268,12 @@
 }
 
 .choices.grid5 { grid-template-columns: repeat(5, 1fr); }
+
+/* ---- ふくしゅう ラウンド ---- */
+.chip-review {
+  border-color: #ffd8a8;
+  color: #e8590c;
+  background: #fff4e6;
+  font-weight: 800;
+}
+.screen-quiz:has(.chip-review) .quiz-title-text { color: #e8590c; }

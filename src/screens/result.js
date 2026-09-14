@@ -9,7 +9,7 @@ const PRAISE = {
 
 export function renderResult({
   root, game, stars, firstTryCorrect, questions, sticker,
-  newMedal = false, unlockedGames = null,
+  newMedal = false, unlockedGames = null, reviewed = 0,
   onRetry, onHome, onStickers,
 }) {
   const starBox = h('div', { class: 'result-stars', html: starsHtml(0) });
@@ -26,7 +26,8 @@ export function renderResult({
       mascotImg('happy', 'mascot mascot-result'),
       h('h1', { class: 'result-title' }, PRAISE[stars] || 'よく できたね！'),
       starBox,
-      h('p', { class: 'result-score' }, `${game.title}：10もんちゅう ${firstTryCorrect}もん せいかい`),
+      h('p', { class: 'result-score' }, `${game.title}：${questions}もんちゅう ${firstTryCorrect}もん せいかい`),
+      reviewed > 0 && h('p', { class: 'result-review' }, `⭐ ふくしゅう ${reviewed}もん やったね！`),
       stickerBox,
       bonusBox,
       h(

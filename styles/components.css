@@ -481,3 +481,12 @@
 .collection-tab:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(45, 90, 130, .1); }
 
 .stat-table tr.row-locked td { color: #a8b6c4; }
+
+.result-review {
+  font-size: clamp(14px, 2.2vh, 19px);
+  font-weight: 700;
+  color: #e8590c;
+  background: #fff4e6;
+  border-radius: 999px;
+  padding: 6px 16px;
+}

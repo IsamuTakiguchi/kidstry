@@ -1,5 +1,5 @@
 // オフラインでも あそべる ように アプリを キャッシュする
-const CACHE = 'kidstry-v4';
+const CACHE = 'kidstry-v5';
 const ASSETS = [
   './',
   'index.html',

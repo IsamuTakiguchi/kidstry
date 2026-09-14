@@ -190,20 +190,54 @@ async function checkLessons(cdp, lessonIds) {
   return failures;
 }
 
-/** せいかいするまで まだ おせる せんたくしを じゅんばんに おす */
-async function playThrough(cdp, maxClicks = 120) {
+/**
+ * せいかいするまで まだ おせる せんたくしを じゅんばんに おす。
+ * 10もん おわると「ふくしゅう する？」が でるので、review で どちらを おすか きめる。
+ */
+async function playThrough(cdp, { review = 'skip', maxClicks = 220 } = {}) {
+  let sawOffer = false;
   for (let i = 0; i < maxClicks; i++) {
-    const done = await cdp.eval("!!document.querySelector('.screen-result')");
-    if (done) return true;
+    if (await cdp.eval("!!document.querySelector('.screen-result')")) return { done: true, sawOffer };
+
+    if (await cdp.eval("!!document.querySelector('.modal-card')")) {
+      sawOffer = true;
+      const sel = review === 'review' ? '.modal-btn-ok' : '.modal-btn-cancel';
+      await cdp.eval(`document.querySelector('${sel}')?.click()`);
+      await sleep(400);
+      continue;
+    }
+
     const clicked = await cdp.eval(`(() => {
       const btn = [...document.querySelectorAll('.choice')].find((b) => !b.disabled && !b.classList.contains('is-correct'));
       if (!btn) return false;
       btn.click();
       return true;
     })()`);
-    await sleep(clicked ? 260 : 500);
+    await sleep(clicked ? 240 : 450);
   }
-  return cdp.eval("!!document.querySelector('.screen-result')");
+  return { done: await cdp.eval("!!document.querySelector('.screen-result')"), sawOffer };
+}
+
+/** まちがえた もんだいが でるまで おして、ふくしゅうの もうしこみ がめんを だす */
+async function playUntilOffer(cdp, maxClicks = 220) {
+  for (let i = 0; i < maxClicks; i++) {
+    if (await cdp.eval("!!document.querySelector('.modal-card')")) return true;
+    if (await cdp.eval("!!document.querySelector('.screen-result')")) return false;
+    const clicked = await cdp.eval(`(() => {
+      const btn = [...document.querySelectorAll('.choice')].find((b) => !b.disabled && !b.classList.contains('is-correct'));
+      if (!btn) return false;
+      btn.click();
+      return true;
+    })()`);
+    await sleep(clicked ? 240 : 450);
+  }
+  return false;
+}
+
+/** きろく（あそびべつ）を よむ */
+function readRecord(cdp, gameId) {
+  return cdp.eval(`(JSON.parse(localStorage.getItem('kidstry:v1') || '{}').games || {})[${JSON.stringify(gameId)}]
+    || { plays: 0, firstTryCorrect: 0, questions: 0, bestStars: 0 }`);
 }
 
 /** Service Worker が とうろく され、つうしん なしでも ひらくか たしかめる */
@@ -240,6 +274,114 @@ async function checkOffline(cdp) {
   await cdp.send('Page.reload');
   await waitFor(() => cdp.eval("!!document.querySelector('.start-btn')"), { label: 'オンライン ふっき' });
   return [];
+}
+
+/** まちがえた もんだいの ふくしゅうが ちゃんと うごくか */
+async function checkReview(cdp) {
+  const failures = [];
+  const GAME = 'hiragana-find';
+
+  // --- 1) 10もん おわると もうしこみが でる。その ときには もう きろく されて いる ---
+  const before = await readRecord(cdp, GAME);
+  await cdp.eval(`window.__kidstry.goQuiz(${JSON.stringify(GAME)})`);
+  await waitFor(() => cdp.eval("!!document.querySelector('.choice')"), { label: 'あそびの かいし' });
+  if (!await playUntilOffer(cdp)) {
+    failures.push('10もん おわっても ふくしゅうの もうしこみが でない');
+    return failures;
+  }
+  await sleep(300);
+  await cdp.shot('20-review-offer');
+
+  const afterMain = await readRecord(cdp, GAME);
+  if (afterMain.plays !== before.plays + 1) {
+    failures.push('ふくしゅうを きく まえに きろくが ほぞん されて いない（とちゅうで ぬけると きえる）');
+  }
+
+  const text = await cdp.eval("document.querySelector('.modal-card').textContent");
+  const shown = Number((text.match(/(\d+)もん を もういちど/) || [])[1]);
+  const missed = (afterMain.questions - before.questions) - (afterMain.firstTryCorrect - before.firstTryCorrect);
+  if (shown !== missed) failures.push(`もうしこみの かず が ちがう（がめん ${shown} / じっさい ${missed}）`);
+  else console.log(`  ✓ もうしこみが でる（まちがえ ${missed}もん）`);
+
+  // --- 2)「もういちど」で ふくしゅう ラウンドに はいる ---
+  await cdp.eval("document.querySelector('.modal-btn-ok').click()");
+  const inReview = await waitFor(() => cdp.eval("!!document.querySelector('.chip-review')"), {
+    label: 'ふくしゅう ラウンド', timeout: 8000,
+  }).catch(() => false);
+  if (!inReview) {
+    failures.push('「もういちど」を おしても ふくしゅうが はじまらない');
+    return failures;
+  }
+  const dots = await cdp.eval("document.querySelectorAll('.progress .dot').length");
+  if (dots !== missed) failures.push(`ふくしゅうの もんだいすうが ちがう（${dots} / ${missed}）`);
+  await sleep(300);
+  await cdp.shot('21-review-round');
+  console.log(`  ✓ ふくしゅう ラウンド（${dots}もん）`);
+
+  // --- 3) ふくしゅうを おえても ★と きろくは かわらない ---
+  const played = await playThrough(cdp, { review: 'skip' });
+  if (!played.done) failures.push('ふくしゅうを さいごまで すすめ られない');
+  await sleep(500);
+  const afterReview = await readRecord(cdp, GAME);
+  for (const key of ['plays', 'firstTryCorrect', 'questions', 'bestStars']) {
+    if (afterReview[key] !== afterMain[key]) {
+      failures.push(`ふくしゅうで きろくが かわって しまった（${key}: ${afterMain[key]} → ${afterReview[key]}）`);
+    }
+  }
+  const resultText = await cdp.eval("document.querySelector('.screen-result')?.textContent || ''");
+  if (!resultText.includes(`ふくしゅう ${missed}もん`)) {
+    failures.push('けっか がめんに ふくしゅうの かずが でて いない');
+  } else {
+    console.log('  ✓ ★と きろくは かわらず、けっかに ふくしゅうが のる');
+  }
+  await sleep(600);
+  await cdp.shot('22-review-result');
+
+  // --- 4)「けっかを みる」を えらぶと ふくしゅう せずに けっかへ ---
+  const beforeSkip = await readRecord(cdp, GAME);
+  await cdp.eval(`window.__kidstry.goQuiz(${JSON.stringify(GAME)})`);
+  await waitFor(() => cdp.eval("!!document.querySelector('.choice')"), { label: 'あそびの かいし' });
+  if (!await playUntilOffer(cdp)) {
+    failures.push('2かいめの もうしこみが でない');
+  } else {
+    await cdp.eval("document.querySelector('.modal-btn-cancel').click()");
+    const toResult = await waitFor(() => cdp.eval("!!document.querySelector('.screen-result')"), {
+      label: 'けっか がめん', timeout: 8000,
+    }).catch(() => false);
+    if (!toResult) failures.push('「けっかを みる」で けっかに いかない');
+    else if (await cdp.eval("!!document.querySelector('.result-review')")) {
+      failures.push('ふくしゅう して いないのに ふくしゅうの ぎょうが でて いる');
+    } else if (await cdp.eval("!!document.querySelector('.chip-review')")) {
+      failures.push('「けっかを みる」なのに ふくしゅうが はじまった');
+    } else {
+      console.log('  ✓「けっかを みる」で そのまま けっかへ');
+    }
+    const afterSkip = await readRecord(cdp, GAME);
+    if (afterSkip.plays !== beforeSkip.plays + 1) failures.push('とばした ときに きろくが ふえて いない');
+  }
+
+  // --- 5) ふくしゅうの とちゅうで ホームに もどっても きろくは のこる ---
+  const beforeAbort = await readRecord(cdp, GAME);
+  await cdp.eval(`window.__kidstry.goQuiz(${JSON.stringify(GAME)})`);
+  await waitFor(() => cdp.eval("!!document.querySelector('.choice')"), { label: 'あそびの かいし' });
+  if (await playUntilOffer(cdp)) {
+    await cdp.eval("document.querySelector('.modal-btn-ok').click()");
+    await waitFor(() => cdp.eval("!!document.querySelector('.chip-review')"), { label: 'ふくしゅう' });
+    await sleep(300);
+    // とちゅうで ホームへ
+    await cdp.eval("document.querySelector('.screen-quiz .icon-btn').click()");
+    await waitFor(() => cdp.eval("!!document.querySelector('.tile')"), { label: 'ホーム' });
+    const afterAbort = await readRecord(cdp, GAME);
+    if (afterAbort.plays !== beforeAbort.plays + 1) {
+      failures.push('ふくしゅうちゅうに ぬけると きろくが きえる');
+    } else {
+      console.log('  ✓ ふくしゅうちゅうに ぬけても きろくは のこる');
+    }
+  } else {
+    failures.push('3かいめの もうしこみが でない');
+  }
+
+  return failures;
 }
 
 /** きろくの かきだし・よみこみ を たしかめる */
@@ -351,7 +493,7 @@ async function checkUnlock(cdp, gameIds, lockedIds) {
   await seedState(cdp, { stickers: allStickers.slice(0, 23) });
   await cdp.eval(`window.__kidstry.goQuiz('counting')`);
   await waitFor(() => cdp.eval("!!document.querySelector('.choice')"), { label: 'さいごの 1まいの ため の あそび' });
-  if (!await playThrough(cdp)) failures.push('さいごまで すすめ られなかった');
+  if (!(await playThrough(cdp, { review: 'skip' })).done) failures.push('さいごまで すすめ られなかった');
   const celebrated = await waitFor(() => cdp.eval("!!document.querySelector('.bonus-unlock')"), {
     label: 'あそびが ふえた おいわい', timeout: 12000,
   }).catch(() => false);
@@ -503,8 +645,9 @@ async function run() {
     await waitFor(() => cdp.eval("!!document.querySelector('.choice')"), { label: 'クイズ' });
     await sleep(400);
     await cdp.shot('03-quiz');
-    const finished = await playThrough(cdp);
-    if (!finished) failures.push('さいごまで すすめ られなかった');
+    const played = await playThrough(cdp, { review: 'skip' });
+    if (!played.done) failures.push('さいごまで すすめ られなかった');
+    if (!played.sawOffer) failures.push('まちがえたのに ふくしゅうの もうしこみが でなかった');
     await sleep(1800);
     await cdp.shot('04-result');
 
@@ -562,6 +705,9 @@ async function run() {
 
     console.log('▶ シール コンプリートで あそびが ふえるか');
     failures.push(...await checkUnlock(cdp, gameIds, lockedIds));
+
+    console.log('▶ まちがえた もんだいの ふくしゅう');
+    failures.push(...await checkReview(cdp));
 
     console.log('▶ きろくの ほぞん・よみこみ の かくにん');
     failures.push(...await checkBackup(cdp, join(tmpdir(), `kidstry-backup-${Date.now()}`)));
