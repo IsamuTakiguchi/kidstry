@@ -1,6 +1,7 @@
 import { h, clear, starsHtml, mascotImg, showModal } from '../core/ui.js';
 import { sfx, speak } from '../core/audio.js';
 import { GAMES } from '../games/index.js';
+import { hasLesson } from '../data/lessons.js';
 import { stickerBookComplete, stickersLeft, hasMedal, medalCount, STICKER_GOAL } from '../core/state.js';
 
 const GREETINGS = [
@@ -10,7 +11,7 @@ const GREETINGS = [
   'よく きたね！',
 ];
 
-export function renderHome({ root, state, onPlay, onStickers, onParent }) {
+export function renderHome({ root, state, onPlay, onLesson, onStickers, onParent }) {
   const greeting = GREETINGS[new Date().getDate() % GREETINGS.length];
   const levelLabel = ['やさしい', 'ふつう', 'むずかしい'][state.profile.level - 1] || 'やさしい';
 
@@ -58,6 +59,14 @@ export function renderHome({ root, state, onPlay, onStickers, onParent }) {
         onclick: () => { sfx.tap(); speak(game.intro || game.title, 'ja-JP'); onPlay(game.id); },
       },
       hasMedal(state, game.id) && h('span', { class: 'tile-medal', title: 'きんメダル' }, '🏅'),
+      // button の なかに button は おけないので span。
+      // stopPropagation で「バッジ＝かいせつ／タイル＝あそぶ」を わける。
+      hasLesson(game.id) && h('span', {
+        class: 'tile-lesson',
+        role: 'button',
+        'aria-label': `${game.title}の おしえて`,
+        onclick: (ev) => { ev.stopPropagation(); sfx.tap(); onLesson(game.id); },
+      }, '▶ おしえて'),
       h('img', { class: 'tile-icon', src: game.icon, alt: '', draggable: 'false' }),
       h('span', { class: 'tile-title' }, game.title),
       h('span', { class: 'tile-sub' }, game.subtitle),
@@ -93,7 +102,7 @@ export function renderHome({ root, state, onPlay, onStickers, onParent }) {
         parentButton(onParent),
       ),
     ),
-    h('div', { class: 'tile-grid' }, tiles),
+    h('div', { class: 'tile-grid', style: tileGridSize(GAMES.length) }, tiles),
   );
 
   clear(root).append(screen);
@@ -135,4 +144,13 @@ function parentButton(onParent) {
   btn.addEventListener('pointercancel', cancel);
   btn.addEventListener('contextmenu', (e) => e.preventDefault());
   return btn;
+}
+
+/**
+ * あそびの かずから タイルの れつ・ぎょうを きめる。
+ * よこむきは 1ぎょう 5つまで。ぜんぶが 1がめんに おさまる かたちを えらぶ。
+ */
+export function tileGridSize(count, maxCols = 5) {
+  const cols = Math.min(maxCols, Math.max(1, Math.ceil(count / Math.ceil(count / maxCols))));
+  return { '--tile-cols': String(cols), '--tile-rows': String(Math.ceil(count / cols)) };
 }

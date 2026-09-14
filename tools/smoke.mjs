@@ -43,16 +43,151 @@ async function seedState(cdp, patch) {
     return true;
   })()`);
   await cdp.send('Page.reload');
-  await waitFor(() => cdp.eval("!!document.querySelector('.start-btn')"), { label: 'よみこみ なおし' });
-  await cdp.eval("document.querySelector('.start-btn').click()");
+  await clickWhenReady(cdp, '.start-btn', 'よみこみ なおし');
   await waitFor(() => cdp.eval("!!document.querySelector('.tile')"), { label: 'ホーム' });
   await sleep(250);
+}
+
+/** ボタンが でるまで まって から おす（よみこみ ちょくごの すれちがいを ふせぐ） */
+async function clickWhenReady(cdp, selector, label = selector) {
+  await waitFor(() => cdp.eval(`(() => {
+    const el = document.querySelector(${JSON.stringify(selector)});
+    if (!el) return false;
+    el.click();
+    return true;
+  })()`), { label });
 }
 
 async function gotoApp(cdp) {
   await cdp.send('Page.navigate', { url: BASE });
   await waitFor(() => cdp.eval("!!document.querySelector('.start-btn')"), { label: 'スタート がめん' });
   await sleep(300);
+}
+
+/** ホームの タイルを あそびの なまえで さがして、じっさいに クリック する */
+async function clickTile(cdp, title) {
+  return cdp.eval(`(() => {
+    const tile = [...document.querySelectorAll('.tile')]
+      .find((t) => t.querySelector('.tile-title')?.textContent === ${JSON.stringify(title)});
+    if (!tile) return 'タイルが ない';
+    const r = tile.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return 'タイルの おおきさが 0';
+    if (r.bottom > innerHeight + 1 || r.right > innerWidth + 1 || r.top < -1 || r.left < -1) {
+      return 'タイルが がめんから はみだして いる';
+    }
+    tile.click();
+    return 'ok';
+  })()`);
+}
+
+/** すべての タイルが がめんの なかに おさまって いるか */
+async function checkTilesVisible(cdp) {
+  return cdp.eval(`(() => {
+    const grid = document.querySelector('.tile-grid');
+    const out = [];
+    for (const tile of document.querySelectorAll('.tile')) {
+      const r = tile.getBoundingClientRect();
+      const name = tile.querySelector('.tile-title')?.textContent || '(なまえなし)';
+      if (r.width < 20 || r.height < 20) out.push(name + ': おおきさが たりない');
+      else if (r.bottom > innerHeight + 1) out.push(name + ': したに はみだして いる');
+      else if (r.right > innerWidth + 1) out.push(name + ': みぎに はみだして いる');
+    }
+    if (grid && grid.scrollHeight > grid.clientHeight + 1) {
+      out.push('タイルが 1がめんに おさまって いない（スクロールが でて いる）');
+    }
+    return out;
+  })()`);
+}
+
+/** 「おしえて」が ちゃんと さいせい され、あそびに つながるか */
+async function checkLessons(cdp, lessonIds) {
+  const failures = [];
+
+  // 1) タイルの「▶ おしえて」バッジを おすと かいせつが ひらく（タイル本体＝あそぶ と くべつ される）
+  const opened = await cdp.eval(`(() => {
+    const tile = [...document.querySelectorAll('.tile')]
+      .find((t) => t.querySelector('.tile-title')?.textContent === 'ようびの じゅんばん');
+    if (!tile) return 'タイルが ない';
+    const badge = tile.querySelector('.tile-lesson');
+    if (!badge) return 'おしえての バッジが ない';
+    badge.click();
+    return 'ok';
+  })()`);
+  if (opened !== 'ok') {
+    failures.push(`おしえての バッジ: ${opened}`);
+  } else {
+    const shown = await waitFor(() => cdp.eval("!!document.querySelector('.screen-lesson')"), {
+      label: 'かいせつ がめん', timeout: 6000,
+    }).catch(() => false);
+    if (!shown) failures.push('バッジを おしても かいせつが ひらかない');
+    else if (await cdp.eval("!!document.querySelector('.choice')")) {
+      failures.push('バッジを おしたのに あそびが はじまって しまう');
+    } else {
+      console.log('  ✓ バッジから かいせつが ひらく');
+    }
+  }
+
+  // 2) 5つの かいせつが すべて さいせい でき、え が でる
+  for (const id of lessonIds) {
+    await cdp.eval(`window.__kidstry.goLesson(${JSON.stringify(id)})`);
+    const ok = await waitFor(() => cdp.eval("!!document.querySelector('.lesson-visual')"), {
+      label: `${id} の かいせつ`, timeout: 6000,
+    }).catch(() => false);
+    if (!ok) { failures.push(`${id}: かいせつが ひらかない`); continue; }
+    const steps = await cdp.eval("document.querySelectorAll('.progress .dot').length");
+    if (steps < 5) failures.push(`${id}: ステップが ${steps}こ しか ない`);
+    // ひょうしの つぎまで すすめて、その あそび ならではの え が でるか たしかめる
+    for (let i = 0; i < 3; i++) {
+      await cdp.eval("[...document.querySelectorAll('.lesson-controls .icon-btn')].find((b) => b.textContent === '▶' && !b.disabled)?.click()");
+      await sleep(150);
+    }
+    const kind = await cdp.eval("document.querySelector('.lesson-visual').className.replace('lesson-visual ', '')");
+    if (kind === 'kind-title') failures.push(`${id}: ひょうしから さきに すすまない`);
+    const empty = await cdp.eval("document.querySelector('.lesson-visual').innerHTML.trim().length === 0");
+    if (empty) failures.push(`${id}: え が えがかれて いない`);
+    const caption = await cdp.eval("document.querySelector('.lesson-caption').textContent.trim()");
+    if (!caption) failures.push(`${id}: せつめいの もじが ない`);
+    await sleep(500);
+    await cdp.shot(`19-lesson-${id}`);
+    console.log(`  ✓ ${id}（${steps}ステップ・${kind}）`);
+  }
+
+  // 3) さいごまで すすめて「あそぶ」で クイズに はいる
+  await cdp.eval(`window.__kidstry.goLesson('left-right')`);
+  await waitFor(() => cdp.eval("!!document.querySelector('.lesson-visual')"), { label: 'かいせつ' });
+  for (let i = 0; i < 20; i++) {
+    const last = await cdp.eval("document.querySelector('.progress .dot:last-child')?.classList.contains('is-now')");
+    if (last) break;
+    await cdp.eval("[...document.querySelectorAll('.lesson-controls .icon-btn')].find((b) => b.textContent === '▶' && !b.disabled)?.click()");
+    await sleep(120);
+  }
+  await cdp.eval("[...document.querySelectorAll('.big-btn')].find((b) => b.textContent.includes('あそぶ')).click()");
+  const started = await waitFor(() => cdp.eval("!!document.querySelector('.choice')"), {
+    label: 'かいせつ から あそびへ', timeout: 8000,
+  }).catch(() => false);
+  if (!started) failures.push('かいせつの あとに あそびが はじまらない');
+  else console.log('  ✓ かいせつ →「あそぶ」で クイズに はいる');
+
+  // 4) はじめての あそびは かいせつが さきに でる
+  await seedState(cdp, { lessonsSeen: [] });
+  await cdp.eval(`window.__kidstry.goQuiz('shapes')`);
+  const auto = await waitFor(() => cdp.eval("!!document.querySelector('.screen-lesson')"), {
+    label: 'はじめての あそびの かいせつ', timeout: 6000,
+  }).catch(() => false);
+  if (!auto) failures.push('はじめて あそぶ ときに かいせつが でない');
+  else console.log('  ✓ はじめての あそびは かいせつが さきに でる');
+
+  // 2かいめは かいせつを とばす
+  await cdp.eval("window.__kidstry.goHome()");
+  await sleep(200);
+  await cdp.eval(`window.__kidstry.goQuiz('shapes')`);
+  const direct = await waitFor(() => cdp.eval("!!document.querySelector('.choice')"), {
+    label: '2かいめは そのまま あそび', timeout: 6000,
+  }).catch(() => false);
+  if (!direct) failures.push('2かいめも かいせつが でて しまう');
+  else console.log('  ✓ 2かいめは そのまま あそびが はじまる');
+
+  return failures;
 }
 
 /** せいかいするまで まだ おせる せんたくしを じゅんばんに おす */
@@ -296,13 +431,47 @@ async function run() {
     await gotoApp(cdp);
     await cdp.shot('01-start');
 
-    await cdp.eval("document.querySelector('.start-btn').click()");
+    await clickWhenReady(cdp, '.start-btn', 'スタート ボタン');
     await waitFor(() => cdp.eval("!!document.querySelector('.tile')"), { label: 'ホーム' });
     await sleep(300);
     await cdp.shot('02-home');
 
+    const gameIdsForSeed = await cdp.eval('window.__kidstry.gameIds');
+
+    // すべての タイルが がめんの なかに あるか（はみだしの さいはつ ぼうし）
+    const hidden = await checkTilesVisible(cdp);
+    if (hidden.length) failures.push(...hidden.map((m) => `ホーム: ${m}`));
+    else console.log('  ✓ タイルが ぜんぶ がめんの なかに ある');
+
+    console.log('▶ 「おしえて」（アニメかいせつ）の かくにん');
+    const lessonIds = await cdp.eval('window.__kidstry.lessonIds');
+    if (lessonIds.length !== 5) failures.push(`かいせつが ${lessonIds.length}こ（5こ のはず）`);
+    failures.push(...await checkLessons(cdp, lessonIds));
+
+    // ここから さきは かいせつを みた あつかいに して、あそびの かくにんに しぼる
+    await seedState(cdp, { lessonsSeen: gameIdsForSeed });
+
+    // じっさいに タイルを おして あそびが はじまるか（goQuiz では なく ほんとうの タップ）
+    for (const title of ['ようびの じゅんばん', 'みぎと ひだり', 'ひらがな さがし']) {
+      const result = await clickTile(cdp, title);
+      if (result !== 'ok') {
+        failures.push(`「${title}」の タイル: ${result}`);
+        await cdp.eval("window.__kidstry.goHome()");
+        await sleep(200);
+        continue;
+      }
+      const started = await waitFor(() => cdp.eval("!!document.querySelector('.choice')"), {
+        label: `${title} の がめん`, timeout: 6000,
+      }).catch(() => false);
+      if (!started) failures.push(`「${title}」の タイルを おしても はじまらない`);
+      else console.log(`  ✓ タイルを おして「${title}」が はじまる`);
+      await cdp.eval("window.__kidstry.goHome()");
+      await waitFor(() => cdp.eval("!!document.querySelector('.tile')"), { label: 'ホームに もどる' });
+      await sleep(150);
+    }
+
     // かぎの かかって いない あそびは ひらけて、かかって いる ものは ひらけない
-    const gameIds = await cdp.eval('window.__kidstry.gameIds');
+    const gameIds = gameIdsForSeed;
     const lockedIds = await cdp.eval('window.__kidstry.lockedIds');
     if (lockedIds.length !== 3) failures.push(`かぎつきの あそびが ${lockedIds.length}こ（3こ のはず）`);
 
@@ -407,7 +576,7 @@ async function run() {
     console.log('▶ スマホ たてむき（390x844）で かくにん');
     session = await launch(390, 844);
     await gotoApp(session.cdp);
-    await session.cdp.eval("document.querySelector('.start-btn').click()");
+    await clickWhenReady(session.cdp, '.start-btn', 'スタート ボタン（たて）');
     await waitFor(() => session.cdp.eval("!!document.querySelector('.tile')"), { label: 'ホーム（たて）' });
     await sleep(300);
     await session.cdp.shot('09-home-portrait');

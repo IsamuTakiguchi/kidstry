@@ -81,10 +81,13 @@
 .tile-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  /* れつ・ぎょうは あそびの かずから home.js が きめる（ふえても はみださない） */
+  grid-template-columns: repeat(var(--tile-cols, 4), 1fr);
+  grid-template-rows: repeat(var(--tile-rows, 3), minmax(0, 1fr));
   gap: clamp(8px, 1.6vh, 16px);
   min-height: 0;
+  /* ほけん：まんいち おさまらなくても かならず てが とどく */
+  overflow: auto;
 }
 
 .tile {
@@ -103,7 +106,15 @@
 }
 .tile:active { transform: translateY(4px); box-shadow: 0 3px 0 color-mix(in srgb, var(--game-color) 55%, #b9cbd9); }
 .tile-icon { width: clamp(44px, 9vh, 84px); height: auto; }
-.tile-title { font-size: clamp(15px, 2.3vh, 22px); font-weight: 800; text-align: center; line-height: 1.15; }
+/* にほんごは くうはくの ところで おりかえす（「ん」だけ とりのこさない） */
+.tile-title {
+  font-size: clamp(14px, 2.2vh, 21px);
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.15;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
 .tile-sub { font-size: clamp(11px, 1.6vh, 14px); color: var(--ink-soft); text-align: center; }
 .tile-stars { font-size: clamp(13px, 2vh, 18px); letter-spacing: 2px; }
 
@@ -422,7 +433,7 @@
   place-items: center;
   font-size: clamp(18px, 3.4vh, 28px);
 }
-.medal-name { font-size: clamp(10px, 1.8vh, 15px); font-weight: 700; text-align: center; line-height: 1.2; }
+.medal-name { font-size: clamp(10px, 1.8vh, 15px); font-weight: 700; text-align: center; line-height: 1.2; word-break: keep-all; }
 
 /* ---- けっか がめんの ごほうび ---- */
 .result-bonus { display: flex; flex-direction: column; gap: 10px; width: 100%; }

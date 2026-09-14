@@ -1,12 +1,14 @@
 import { h, clear } from './core/ui.js';
 import {
   createStore, recordSession, awardSticker, starsFor,
-  stickerBookComplete, sessionRewards,
+  stickerBookComplete, sessionRewards, hasSeenLesson, markLessonSeen,
 } from './core/state.js';
 import { configureAudio, unlockAudio, sfx, speak, cancelSpeech } from './core/audio.js';
 import { startQuiz } from './core/quiz.js';
 import { GAMES, LOCKED_GAMES, gameById } from './games/index.js';
 import { renderHome } from './screens/home.js';
+import { startLesson } from './screens/lesson.js';
+import { lessonFor, LESSONS } from './data/lessons.js';
 import { renderResult } from './screens/result.js';
 import { renderStickerBook } from './screens/stickers.js';
 import { renderParent } from './screens/parent.js';
@@ -59,21 +61,45 @@ function goHome() {
     root,
     state: store.get(),
     onPlay: goQuiz,
+    onLesson: goLesson,
     onStickers: goStickers,
     onParent: goParent,
   });
 }
 
-function goQuiz(gameId) {
+/** かいせつを みせる（みおわったら そのまま あそびへ） */
+function goLesson(gameId, { thenPlay = true } = {}) {
+  cleanup();
+  const game = gameById(gameId);
+  const lesson = game && lessonFor(gameId);
+  if (!game || !lesson) return goQuiz(gameId);
+  store.update((s) => markLessonSeen(s, gameId));
+  dispose = startLesson({
+    root,
+    game,
+    lesson,
+    onExit: goHome,
+    onFinish: () => (thenPlay ? goQuiz(gameId, { skipLesson: true }) : goHome()),
+  });
+}
+
+function goQuiz(gameId, { skipLesson = false } = {}) {
   cleanup();
   const game = gameById(gameId);
   if (!game) return goHome();
   if (game.locked && !stickerBookComplete(store.get())) return goHome();
+
+  // はじめての あそびは、さきに かいせつを みせる
+  if (!skipLesson && lessonFor(gameId) && !hasSeenLesson(store.get(), gameId)) {
+    return goLesson(gameId);
+  }
+
   dispose = startQuiz({
     root,
     game,
     level: store.get().profile.level,
     onExit: goHome,
+    onLesson: lessonFor(gameId) ? () => goLesson(gameId) : null,
     onFinish: (result) => finishQuiz(game, result),
   });
 }
@@ -99,7 +125,7 @@ function finishQuiz(game, result) {
     sticker: awarded.sticker,
     newMedal,
     unlockedGames: justUnlocked ? LOCKED_GAMES : null,
-    onRetry: () => goQuiz(game.id),
+    onRetry: () => goQuiz(game.id, { skipLesson: true }),
     onHome: goHome,
     onStickers: goStickers,
   });
@@ -128,13 +154,32 @@ document.addEventListener('gesturestart', (e) => e.preventDefault());
 
 store.subscribe((state) => configureAudio(state.settings));
 
+// あたらしい ばんが でたら、つぎの きどうを またずに その場で よみこみ なおす
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  // すでに うごいて いた ばあいだけ よみこみ なおす（はじめての とうろくでは なにも しない）
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloading) return;
+    reloading = true;
+    location.reload();
+  });
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => { /* オフライン きのう なしで うごく */ });
+    // updateViaCache: 'none' … sw.js を HTTP キャッシュごしに よまない（さいだい10ぷんの おくれを なくす）
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+      .then((registration) => {
+        registration.update().catch(() => {});
+        // アプリに もどって きた ときにも あたらしい ばんを たしかめる
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) registration.update().catch(() => {});
+        });
+      })
+      .catch(() => { /* オフライン きのう なしで うごく */ });
   });
 }
 
 goStart();
 
 // じどう テスト から つかう
-window.__kidstry = { store, goHome, goQuiz, goStart, goStickers, goParent, gameIds: GAMES.map((g) => g.id), lockedIds: LOCKED_GAMES.map((g) => g.id) };
+window.__kidstry = { store, goHome, goQuiz, goLesson, goStart, goStickers, goParent, gameIds: GAMES.map((g) => g.id), lockedIds: LOCKED_GAMES.map((g) => g.id), lessonIds: Object.keys(LESSONS) };

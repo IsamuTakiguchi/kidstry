@@ -95,7 +95,7 @@ export function lengthClass(text) {
 /**
  * クイズを はじめる。かえり値は かたづけ かんすう。
  */
-export function startQuiz({ root, game, level, onExit, onFinish, count = QUESTIONS_PER_SESSION }) {
+export function startQuiz({ root, game, level, onExit, onFinish, onLesson = null, count = QUESTIONS_PER_SESSION }) {
   const questions = game.generate(level, Math.random, count);
   const startedAt = Date.now();
   let index = 0;
@@ -134,6 +134,12 @@ export function startQuiz({ root, game, level, onExit, onFinish, count = QUESTIO
       }, '🏠'),
       mascot,
       h('div', { class: 'quiz-title' }, h('span', { class: 'quiz-title-text' }, game.title), progress),
+      onLesson && h('button', {
+        class: 'icon-btn lesson-btn',
+        type: 'button',
+        'aria-label': 'おしえてを みる',
+        onclick: () => { cancelSpeech(); onLesson(); },
+      }, '💡'),
       speakerBtn,
     ),
     quizMain,

@@ -5,6 +5,7 @@ import {
   accuracy, domainStats, totalPlays, migrate, createStore, todayKey, STORAGE_KEY,
   exportPayload, parseBackup, backupFileName,
   stickerBookComplete, stickersLeft, hasMedal, medalCount, sessionRewards, STICKER_GOAL,
+  hasSeenLesson, markLessonSeen,
 } from '../src/core/state.js';
 import { STICKERS } from '../src/data/stickers.js';
 import { GAMES } from '../src/games/index.js';
@@ -242,4 +243,51 @@ test('ごほうびの はんてい：1どだけ おいわいする', () => {
   const complete = awardSticker(almost, () => 0).state;
   assert.deepEqual(sessionRewards(almost, complete, 'counting'), { newMedal: false, justUnlocked: true });
   assert.deepEqual(sessionRewards(complete, complete, 'counting'), { newMedal: false, justUnlocked: false });
+});
+
+test('「おしえて」を みた きろく', () => {
+  const base = defaultState();
+  assert.deepEqual(base.lessonsSeen, []);
+  assert.equal(hasSeenLesson(base, 'weekday'), false);
+
+  const once = markLessonSeen(base, 'weekday');
+  assert.deepEqual(once.lessonsSeen, ['weekday']);
+  assert.equal(hasSeenLesson(once, 'weekday'), true);
+  assert.deepEqual(base.lessonsSeen, [], 'もとの state を こわして いる');
+
+  const twice = markLessonSeen(once, 'weekday');
+  assert.deepEqual(twice.lessonsSeen, ['weekday'], 'おなじ ものが 2ど はいる');
+  assert.equal(twice, once, 'かわって いないのに あたらしい state を つくって いる');
+
+  const more = markLessonSeen(once, 'clock');
+  assert.deepEqual(more.lessonsSeen, ['weekday', 'clock']);
+});
+
+test('むかしの バックアップ（lessonsSeen なし）を よみこんでも こわれない', () => {
+  // v1 の ころに かきだした ファイルを そのまま よみこむ
+  const old = {
+    app: 'kidstry',
+    version: 1,
+    exportedAt: '2026-09-12T00:00:00.000Z',
+    state: {
+      version: 1,
+      profile: { name: 'たろう', level: 2 },
+      settings: { sound: true, speech: true },
+      stickers: ['st01', 'st02'],
+      lastPlayDate: '2026-09-12',
+      streak: 3,
+      totalPlayMs: 60000,
+      games: { clock: { plays: 1, firstTryCorrect: 9, questions: 10, bestStars: 3, lastPlayed: '2026-09-12' } },
+    },
+  };
+  const result = parseBackup(JSON.stringify(old));
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.state.lessonsSeen, [], 'ない こうもくが おぎなわれて いない');
+  assert.equal(hasSeenLesson(result.state, 'clock'), false);
+  assert.equal(result.state.profile.name, 'たろう');
+  assert.equal(hasMedal(result.state, 'clock'), true);
+
+  // よみこんだ あと、ふつうに つかえる
+  const after = markLessonSeen(result.state, 'clock');
+  assert.deepEqual(after.lessonsSeen, ['clock']);
 });

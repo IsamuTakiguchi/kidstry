@@ -11,6 +11,7 @@ export function defaultState() {
     profile: { name: '', level: 1 },
     settings: { sound: true, speech: true },
     stickers: [],
+    lessonsSeen: [],
     lastPlayDate: null,
     streak: 0,
     totalPlayMs: 0,
@@ -129,6 +130,7 @@ export function migrate(raw) {
     profile: { ...base.profile, ...(raw.profile || {}) },
     settings: { ...base.settings, ...(raw.settings || {}) },
     stickers: Array.isArray(raw.stickers) ? raw.stickers.filter((id) => typeof id === 'string') : [],
+    lessonsSeen: Array.isArray(raw.lessonsSeen) ? raw.lessonsSeen.filter((id) => typeof id === 'string') : [],
     games: raw.games && typeof raw.games === 'object' ? raw.games : {},
     totalPlayMs: Number.isFinite(raw.totalPlayMs) ? raw.totalPlayMs : 0,
     streak: Number.isFinite(raw.streak) ? raw.streak : 0,
@@ -254,4 +256,15 @@ export function sessionRewards(before, after, gameId) {
     newMedal: !hasMedal(before, gameId) && hasMedal(after, gameId),
     justUnlocked: !stickerBookComplete(before) && stickerBookComplete(after),
   };
+}
+
+// ---- 「おしえて」を みた きろく --------------------------------------------
+export function hasSeenLesson(state, gameId) {
+  return state.lessonsSeen.includes(gameId);
+}
+
+/** おなじ ものを 2ど いれない */
+export function markLessonSeen(state, gameId) {
+  if (state.lessonsSeen.includes(gameId)) return state;
+  return { ...state, lessonsSeen: [...state.lessonsSeen, gameId] };
 }

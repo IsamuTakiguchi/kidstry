@@ -1,5 +1,5 @@
 // オフラインでも あそべる ように アプリを キャッシュする
-const CACHE = 'kidstry-v3';
+const CACHE = 'kidstry-v4';
 const ASSETS = [
   './',
   'index.html',
@@ -7,6 +7,7 @@ const ASSETS = [
   'styles/base.css',
   'styles/components.css',
   'styles/games.css',
+  'styles/lesson.css',
   'src/main.js',
   'src/core/audio.js',
   'src/core/quiz.js',
@@ -17,6 +18,7 @@ const ASSETS = [
   'src/data/english.js',
   'src/data/seasons.js',
   'src/data/hiragana.js',
+  'src/data/lessons.js',
   'src/data/stickers.js',
   'src/data/weekdays.js',
   'src/data/words.js',
@@ -37,6 +39,7 @@ const ASSETS = [
   'src/games/weekday.js',
   'src/games/word-start.js',
   'src/screens/home.js',
+  'src/screens/lesson.js',
   'src/screens/parent.js',
   'src/screens/result.js',
   'src/screens/stickers.js',
